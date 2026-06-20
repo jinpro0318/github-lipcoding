@@ -1,0 +1,16 @@
+{
+  "name": "tab-talk-web",
+  "version": "0.2.0",
+  "description": "탭talk — 집중 집사 웹 앱 (배포 진입점)",
+  "type": "module",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node --watch server/server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

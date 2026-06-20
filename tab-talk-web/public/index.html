@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+    <title>탭talk · 집중을 모시는 컨시어지</title>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+    <link
+      rel="stylesheet"
+      as="style"
+      crossorigin
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <!-- 상단 헤더 -->
+      <header class="app-header">
+        <div class="header-brand">
+          <span class="brand-mark"><i data-lucide="concierge-bell"></i></span>
+          <h1>탭talk</h1>
+        </div>
+        <button class="ghost-pill" id="resetBtn">오늘 초기화</button>
+      </header>
+
+      <main class="layout">
+      <!-- 상태 히어로 카드 -->
+      <section class="hero-card" id="heroCard">
+        <span class="hero-status-chip" id="statusChip">대기 중</span>
+        <div class="hero-ring" id="heroRing">
+        <div class="mascot" id="mascot" aria-hidden="true">
+          <span class="spark spark-1"></span>
+          <span class="spark spark-2"></span>
+          <span class="spark spark-3"></span>
+          <span class="spark spark-4"></span>
+          <svg class="mascot-svg" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="탭talk 마스코트 탭이">
+            <defs>
+              <linearGradient id="tabiBody" x1="60" y1="34" x2="60" y2="108" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#5aa0ff" />
+                <stop offset="1" stop-color="#3182f6" />
+              </linearGradient>
+              <linearGradient id="tabiCap" x1="60" y1="22" x2="60" y2="42" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#ff6b76" />
+                <stop offset="1" stop-color="#f04452" />
+              </linearGradient>
+            </defs>
+            <ellipse cx="60" cy="111" rx="27" ry="5" fill="#191f28" opacity="0.07" />
+            <!-- 몸통 -->
+            <rect x="25" y="42" width="70" height="65" rx="32" fill="url(#tabiBody)" />
+            <ellipse cx="60" cy="80" rx="21" ry="19" fill="#ffffff" opacity="0.14" />
+            <!-- 벨보이 모자 -->
+            <rect x="35" y="38" width="50" height="9" rx="4.5" fill="#1b64da" />
+            <rect x="39" y="25" width="42" height="16" rx="8" fill="url(#tabiCap)" />
+            <rect x="39" y="34" width="42" height="3" rx="1.5" fill="#ffd23f" opacity="0.92" />
+            <circle cx="60" cy="21" r="3.8" fill="#ffd23f" />
+            <!-- 눈 -->
+            <circle cx="49" cy="68" r="6.4" fill="#fff" />
+            <circle cx="71" cy="68" r="6.4" fill="#fff" />
+            <circle class="mascot-pupil" cx="50" cy="69" r="3.3" fill="#191f28" />
+            <circle class="mascot-pupil" cx="72" cy="69" r="3.3" fill="#191f28" />
+            <circle cx="51.3" cy="67.6" r="1" fill="#fff" />
+            <circle cx="73.3" cy="67.6" r="1" fill="#fff" />
+            <!-- 볼 -->
+            <circle cx="41" cy="78" r="3.8" fill="#ff8a3d" opacity="0.32" />
+            <circle cx="79" cy="78" r="3.8" fill="#ff8a3d" opacity="0.32" />
+            <!-- 미소 -->
+            <path d="M53 82 Q60 89 67 82" stroke="#191f28" stroke-width="3" stroke-linecap="round" />
+            <!-- 컨시어지 벨 -->
+            <g transform="translate(83 88)">
+              <rect x="-9" y="8" width="18" height="3" rx="1.5" fill="#e0a800" />
+              <path d="M-8 8 a8 7 0 0 1 16 0 Z" fill="#ffd23f" />
+              <circle cx="0" cy="-1" r="1.8" fill="#ffe487" />
+            </g>
+          </svg>
+        </div>
+        </div>
+        <div class="hero-timer" id="statusTimer">00:00</div>
+        <div class="session-progress" id="sessionProgress" hidden>
+          <div class="session-track"><div class="session-fill" id="sessionFill"></div></div>
+          <span class="session-cap" id="sessionCap">25분 목표까지 25분 남았어요</span>
+        </div>
+        <div class="goal-row" id="goalRow">
+          <span class="goal-label">집중 목표</span>
+          <div class="goal-chips">
+            <button class="goal-chip" data-goal="15">15분</button>
+            <button class="goal-chip" data-goal="25">25분</button>
+            <button class="goal-chip" data-goal="45">45분</button>
+            <button class="goal-chip" data-goal="60">60분</button>
+          </div>
+          <span class="goal-preview" id="goalPreview">목표 25분 · 5분마다 탭이가 성장해요</span>
+        </div>
+        <p class="hero-message" id="heroMessage">
+          주인님, 환영합니다. 준비되시면 집중 세션을 시작해 드릴게요.
+        </p>
+        <div class="hero-actions">
+          <button class="btn btn-primary" id="startBtn">집중 시작하기</button>
+          <button class="btn btn-soft" id="stopBtn" disabled>세션 종료</button>
+        </div>
+        <button class="pip-btn" id="pipBtn">
+          <i data-lucide="picture-in-picture-2"></i><span>다른 탭에서도 띄우기</span>
+        </button>
+        <button class="pip-btn cam-btn" id="camBtn">
+          <i data-lucide="video"></i><span>카메라로 집중 감지</span>
+        </button>
+        <div class="cam-preview" id="camPreview" hidden>
+          <video id="camVideo" autoplay playsinline muted></video>
+          <div class="cam-meta">
+            <span class="cam-dot" id="camDot"></span>
+            <span class="cam-state" id="camState">눈맞춤 확인 중…</span>
+          </div>
+        </div>
+      </section>
+
+      <div class="side-col">
+
+      <!-- 집중 브리핑 (예측) -->
+      <section class="card briefing-card" id="briefingCard" hidden>
+        <div class="card-head">
+          <h2>집중 브리핑</h2>
+          <span class="muted-mini" id="briefingBasis">예측 준비 중</span>
+        </div>
+        <div class="summary-row">
+          <div class="summary-item">
+            <span class="summary-num blue" id="fcFocus">--<small>%</small></span>
+            <span class="summary-label">예상 몰입</span>
+          </div>
+          <div class="summary-divider"></div>
+          <div class="summary-item">
+            <span class="summary-num orange" id="fcDistract">--<small>분</small></span>
+            <span class="summary-label">예상 딴짓</span>
+          </div>
+          <div class="summary-divider"></div>
+          <div class="summary-item">
+            <span class="summary-num conf" id="fcConf">측정중</span>
+            <span class="summary-label">신뢰도</span>
+          </div>
+        </div>
+        <p class="progress-caption" id="briefingNote">세션을 마칠수록 예측이 정확해져요.</p>
+      </section>
+
+      <!-- 오늘 요약 -->
+      <section class="card">
+        <div class="card-head">
+          <h2>오늘의 집중</h2>
+          <div class="head-tags">
+            <span class="brain-state" id="brainState" hidden>혼돈의 카오스 🌪️</span>
+            <span class="title-badge" id="titleBadge">집중 새내기</span>
+          </div>
+        </div>
+
+        <div class="summary-row">
+          <div class="summary-item">
+            <span class="summary-num" id="statFocus">0<small>분</small></span>
+            <span class="summary-label">몰입</span>
+          </div>
+          <div class="summary-divider"></div>
+          <div class="summary-item">
+            <span class="summary-num orange" id="statDistract">0<small>분</small></span>
+            <span class="summary-label">딴짓</span>
+          </div>
+          <div class="summary-divider"></div>
+          <div class="summary-item">
+            <span class="summary-num blue" id="statReturn">100<small>%</small></span>
+            <span class="summary-label">복귀율</span>
+          </div>
+        </div>
+
+        <div class="progress-track">
+          <div class="progress-fill" id="focusBar"></div>
+        </div>
+        <p class="progress-caption" id="focusCaption">아직 기록이 없어요. 첫 세션을 시작해볼까요?</p>
+        <button class="share-btn" id="shareBtn" hidden><i data-lucide="image-down"></i> 내 집중 구조 공유</button>
+      </section>
+
+      <!-- AI 코치 -->
+      <section class="card coach-card">
+        <div class="card-head">
+          <h2>AI 집중 코치</h2>
+          <button class="ghost-pill" id="coachBtn">코칭 받기</button>
+        </div>
+        <div class="coach-body" id="coachBody">
+          <p class="coach-headline" id="coachHeadline">버튼을 누르면 오늘의 집중을 분석해 드려요.</p>
+          <p class="coach-advice" id="coachAdvice"></p>
+        </div>
+      </section>
+
+      <!-- 응대 스타일 -->
+      <section class="card">
+        <div class="card-head">
+          <h2>응대 스타일</h2>
+        </div>
+        <div class="tone-row">
+          <button class="tone-chip is-active" data-tone="concierge"><i data-lucide="concierge-bell"></i> 정중한 집사</button>
+          <button class="tone-chip" data-tone="secretary"><i data-lucide="coffee"></i> 다정한 집사</button>
+          <button class="tone-chip" data-tone="coach"><i data-lucide="glasses"></i> 차분한 집사</button>
+          <button class="tone-chip" data-tone="manager"><i data-lucide="flame"></i> 열정 집사</button>
+        </div>
+      </section>
+      </div>
+      </main>
+
+      <footer class="app-footer">
+        <span id="connState" class="conn-state">● 서버 연결 확인 중</span>
+      </footer>
+    </div>
+
+    <!-- 시작 안내 바텀시트 -->
+    <div class="sheet-backdrop" id="startSheet" hidden>
+      <div class="sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-emoji"><i data-lucide="route"></i></div>
+        <p class="sheet-title">집중 기록은 이렇게 시작돼요</p>
+        <ul class="start-guide">
+          <li>
+            <i data-lucide="eye"></i>
+            <span>탭을 벗어나면 자리 비움을 감지하고, 돌아오시면 <strong>비운 시간만큼 자동으로 이탈에 반영</strong>해요.</span>
+          </li>
+          <li>
+            <i data-lucide="timer"></i>
+            <span>잠깐(10초 이내) 참고 탭 확인은 <strong>이탈로 안 세요.</strong></span>
+          </li>
+          <li>
+            <i data-lucide="sparkles"></i>
+            <span>예상 몰입·딴짓은 <strong>최근 세션 기록</strong>을 기반으로 예측해요.</span>
+          </li>
+        </ul>
+        <div class="sheet-actions">
+          <button class="btn btn-primary" id="confirmStartBtn">오케이, 시작하겠습니다</button>
+          <button class="btn btn-soft" id="cancelStartBtn">잠시만요</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 토스트 알림 -->
+    <div class="toast" id="toast" hidden></div>
+
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

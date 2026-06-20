@@ -1,0 +1,19 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 런타임 데이터 (파일 기반 통계)
+tab-talk-web/server/data/
+
+# 임시 검증 스캐폴드
+tab-talk-web/.verify/
+
+# OS / 에디터
+.DS_Store
+*.log
+
+# 환경 변수
+.env
+.env.*

@@ -1,0 +1,14 @@
+{
+  "name": "tabtalk-server",
+  "version": "1.0.0",
+  "description": "탭talk 풀스택 백엔드 — 집중 세션 기록, 통계, AI 코치",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
