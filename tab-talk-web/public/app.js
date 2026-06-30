@@ -1339,6 +1339,29 @@ function siteName(domain) {
   return parts.length >= 2 ? parts[parts.length - 2] : parts[0];
 }
 
+function guidanceTabs(tabs) {
+  return [...tabs]
+    .filter((it) => !it.active && (it.discarded || it.heavy || (it.level || 0) >= 2))
+    .sort((a, b) => Number(!!b.heavy) - Number(!!a.heavy) || (b.level || 0) - (a.level || 0))
+    .slice(0, 3);
+}
+
+function tabGuidanceCopy(candidates, liveTabs) {
+  const names = candidates.map((it) => siteName(it.domain));
+  const first = names[0];
+  if (!first) {
+    if (tone === "secretary") return `열린 탭 ${liveTabs}개는 아직 괜찮아 보여요. 집중할 때는 새 탭만 조금 조심해봐요.`;
+    if (tone === "coach") return `열린 탭 ${liveTabs}개. 현재 장기 미사용 후보는 뚜렷하지 않습니다. 목표와 관련된 탭만 유지하세요.`;
+    if (tone === "manager") return `열린 탭 ${liveTabs}개! 지금은 괜찮아요. 집중할 때 새 탭만 막아봅시다!`;
+    return `열린 탭 ${liveTabs}개입니다. 지금은 집중 흐름을 크게 방해하는 후보가 보이지 않습니다.`;
+  }
+  const rest = names.length > 1 ? ` 외 ${names.length - 1}개` : "";
+  if (tone === "secretary") return `${first}${rest} 탭이 오래 쉬고 있어요. 지금 할 일과 상관없다면 잠시 의식만 해두셔도 좋아요.`;
+  if (tone === "coach") return `${first}${rest} 탭이 장시간 사용되지 않았습니다. 현재 세션과 관련 없는지 확인하세요.`;
+  if (tone === "manager") return `${first}${rest} 오래 켜져 있어요! 지금 집중할 거면 시야 밖으로 치워두고 갑시다!`;
+  return `${first}${rest} 탭이 오래 머물러 있습니다. 주인님의 집중 흐름을 위해 잠시 정돈 후보로 기억해 두겠습니다.`;
+}
+
 function renderTabHealthCard(ov) {
   const card = el("tabHealthCard");
   if (!card) return;
@@ -1348,13 +1371,14 @@ function renderTabHealthCard(ov) {
   const load = (ov && ov.load) || { level: "light", pct: 0, title: "쾌적해요", message: "확장에서 탭 사용량을 확인하고 있어요.", source: "tabs" };
   const liveTabs = tabs.filter((it) => !it.discarded).length;
   const heavyTabs = tabs.filter((it) => it.heavy).length;
+  const candidates = guidanceTabs(tabs);
 
   el("webTabCount").textContent = `${(ov && ov.total) || tabs.length}개`;
   el("webLiveTabCount").textContent = String(liveTabs);
   el("webSleepingTabCount").textContent = String((ov && ov.discarded) || 0);
   el("webHeavyTabCount").textContent = String(heavyTabs);
   el("webMemBox").dataset.level = load.level || "light";
-  const summary = tabHealthSummary(load, liveTabs, heavyTabs);
+  const summary = tabHealthSummary(load, liveTabs, candidates);
   el("webMemStatusTitle").textContent = summary.title;
   el("webMemStatusMsg").textContent = summary.message;
   el("webMemFill").style.width = `${load.pct || 0}%`;
@@ -1362,9 +1386,20 @@ function renderTabHealthCard(ov) {
   el("webMemVal").textContent = `${load.pct || 0}%`;
 
   el("webMemCaption").textContent = tabHealthCaption(ov, load);
+  const guide = el("webTabGuide");
+  guide.hidden = tabs.length === 0;
+  el("webTabGuideCopy").textContent = tabGuidanceCopy(candidates, liveTabs);
+  const guideSites = el("webTabGuideSites");
+  guideSites.innerHTML = "";
+  (candidates.length ? candidates : tabs.filter((it) => !it.active).slice(0, 3)).forEach((it) => {
+    const chip = document.createElement("span");
+    chip.textContent = siteName(it.domain);
+    guideSites.appendChild(chip);
+  });
 
   const visibleTabs = tabs;
   el("webSleepEmpty").hidden = tabs.length > 0;
+  el("webTabDetail").hidden = tabs.length === 0;
   const ul = el("webSleepList");
   ul.innerHTML = "";
   visibleTabs.forEach((it) => {
@@ -1394,22 +1429,22 @@ function tabHealthCaption(ov, load) {
   if (load.source === "memory" && ov.memory && ov.memory.capacity) {
     const used = fmtGB(ov.memory.capacity - ov.memory.available);
     const total = fmtGB(ov.memory.capacity);
-    if (tone === "secretary") return `시스템 메모리 ${used}/${total}GB 사용 중이에요. 오래 켠 탭부터 같이 가볍게 정리해봐요.`;
-    if (tone === "coach") return `시스템 메모리 ${used}/${total}GB 사용 중. 오래 열린 탭부터 정리하면 부담을 낮출 수 있습니다.`;
-    if (tone === "manager") return `메모리 ${used}/${total}GB 사용 중! 오래 켠 탭부터 정리하면 바로 가벼워져요.`;
-    return `시스템 메모리 ${used}/${total}GB 사용 중입니다. 오래 켠 탭부터 정돈해 드리면 부담이 줄어듭니다.`;
+    if (tone === "secretary") return `시스템 메모리 ${used}/${total}GB 사용 중이에요. 지금은 집중에 필요한 탭만 남기는 느낌으로 살펴봐요.`;
+    if (tone === "coach") return `시스템 메모리 ${used}/${total}GB 사용 중. 세션과 무관한 장기 탭만 후보로 확인하세요.`;
+    if (tone === "manager") return `메모리 ${used}/${total}GB 사용 중! 지금 집중할 탭만 딱 보고 갑시다!`;
+    return `시스템 메모리 ${used}/${total}GB 사용 중입니다. 집중에 덜 필요한 탭만 조용히 후보로 보겠습니다.`;
   }
   if (!current) {
-    if (tone === "secretary") return "열린 탭을 살펴보고 있어요. 필요 없는 탭은 천천히 정리해도 괜찮아요.";
-    if (tone === "coach") return "열린 탭 상태를 점검 중입니다. 오래 켠 탭이 있으면 정리를 권장합니다.";
-    if (tone === "manager") return "열린 탭 점검 중! 필요 없는 탭은 바로 정리해봅시다.";
-    return "열린 탭 상태를 확인하고 있습니다. 오래 켠 탭은 정돈해 두시면 좋습니다.";
+    if (tone === "secretary") return "열린 탭을 살펴보고 있어요. 오래 안 본 탭이 있으면 조용히 알려드릴게요.";
+    if (tone === "coach") return "열린 탭 상태를 점검 중입니다. 장기 미사용 후보만 안내합니다.";
+    if (tone === "manager") return "열린 탭 점검 중! 집중 방해 후보만 빠르게 잡아볼게요!";
+    return "열린 탭 상태를 확인하고 있습니다. 집중 흐름에 방해될 후보만 살펴보겠습니다.";
   }
   if (current.heavy) {
-    if (tone === "secretary") return `지금 보는 ${current.domain} 탭이 ${current.openLabel} 열려 있어요. 필요 없으면 살짝 닫아볼까요?`;
-    if (tone === "coach") return `현재 ${current.domain} 탭이 ${current.openLabel} 유지 중입니다. 사용하지 않는다면 정리 대상입니다.`;
-    if (tone === "manager") return `${current.domain} 탭이 ${current.openLabel} 열려 있어요! 필요 없으면 바로 정리 갑시다.`;
-    return `지금 보시는 ${current.domain} 탭이 ${current.openLabel} 열려 있습니다. 필요 없으시면 정리해 드릴 차례입니다.`;
+    if (tone === "secretary") return `지금 보는 ${current.domain} 탭이 ${current.openLabel} 열려 있어요. 세션에 필요한 탭인지 살짝만 확인해봐요.`;
+    if (tone === "coach") return `현재 ${current.domain} 탭이 ${current.openLabel} 유지 중입니다. 세션 관련성을 확인하세요.`;
+    if (tone === "manager") return `${current.domain} 탭이 ${current.openLabel} 열려 있어요! 지금 목표랑 맞는지만 빠르게 봅시다!`;
+    return `지금 보시는 ${current.domain} 탭이 ${current.openLabel} 열려 있습니다. 집중 목표와 맞는지만 확인하겠습니다.`;
   }
   if (tone === "secretary") return `지금 보는 ${current.domain} 탭은 ${current.openLabel}. 아직 가벼워요.`;
   if (tone === "coach") return `현재 ${current.domain} 탭은 ${current.openLabel}. 부담은 낮은 상태입니다.`;
@@ -1417,29 +1452,30 @@ function tabHealthCaption(ov, load) {
   return `지금 보시는 ${current.domain} 탭은 ${current.openLabel}. 아직 가볍습니다.`;
 }
 
-function tabHealthSummary(load, liveTabs, heavyTabs) {
+function tabHealthSummary(load, liveTabs, candidates) {
   const level = load.level || "light";
-  const longNote = heavyTabs > 0 ? ` 오래 열린 탭 ${heavyTabs}개가 보여요.` : "";
+  const candidateCount = candidates.length;
+  const note = candidateCount > 0 ? ` 집중 방해 후보 ${candidateCount}개를 골라뒀습니다.` : "";
   const copy = {
     concierge: {
-      light: ["정돈되어 있습니다", `열린 탭 ${liveTabs}개입니다. 지금은 부담이 낮아 쾌적하게 모시고 있습니다.${longNote}`],
-      medium: ["조금 정리하면 좋습니다", `열린 탭 ${liveTabs}개가 자원을 나누어 쓰고 있습니다. 사용하지 않는 탭부터 정돈하시면 더 가벼워집니다.${longNote}`],
-      heavy: ["정리가 필요합니다", `탭 ${liveTabs}개가 열려 있어 부담이 커질 수 있습니다. 오래 켠 탭부터 차분히 정리해 드리겠습니다.${longNote}`]
+      light: ["집중 흐름이 가볍습니다", `열린 탭 ${liveTabs}개입니다. 지금은 크게 방해되는 후보가 적습니다.${note}`],
+      medium: ["후보를 살펴두었습니다", `열린 탭 ${liveTabs}개 중 오래 머문 탭을 조용히 골라두었습니다.${note}`],
+      heavy: ["집중 후보 확인이 필요합니다", `탭 ${liveTabs}개가 열려 있습니다. 세션과 먼 탭만 차분히 안내하겠습니다.${note}`]
     },
     secretary: {
-      light: ["아직 가벼워요", `열린 탭 ${liveTabs}개예요. 지금은 괜찮지만, 안 쓰는 탭은 나중에 같이 정리해봐요.${longNote}`],
-      medium: ["조금 무거워졌어요", `열린 탭 ${liveTabs}개가 메모리를 나눠 쓰고 있어요. 오래 안 본 탭부터 하나씩 닫으면 훨씬 편해져요.${longNote}`],
-      heavy: ["많이 버거워 보여요", `탭 ${liveTabs}개가 열려 있어요. 지금 안 쓰는 탭부터 같이 정리해서 컴퓨터를 가볍게 만들어봐요.${longNote}`]
+      light: ["아직 괜찮아요", `열린 탭 ${liveTabs}개예요. 집중을 방해할 만한 탭은 크지 않아 보여요.${note}`],
+      medium: ["살짝 신경 쓸 후보가 있어요", `오래 쉬고 있는 탭이 보여요. 지금 할 일과 상관있는지만 가볍게 봐요.${note}`],
+      heavy: ["집중이 흐트러질 수 있어요", `탭 ${liveTabs}개가 열려 있어요. 오래 안 본 탭만 제가 조용히 알려드릴게요.${note}`]
     },
     coach: {
-      light: ["부담 낮음", `열린 탭 ${liveTabs}개. 현재 탭 부담은 낮습니다.${longNote}`],
-      medium: ["정리 권장", `열린 탭 ${liveTabs}개. 메모리 부담이 증가 중입니다. 사용하지 않는 탭을 정리하는 것이 좋습니다.${longNote}`],
-      heavy: ["정리 필요", `탭 ${liveTabs}개. 오래 열린 탭이 성능 저하 요인이 될 수 있습니다. 정리 우선순위를 확인하세요.${longNote}`]
+      light: ["방해 낮음", `열린 탭 ${liveTabs}개. 현재 장기 미사용 후보는 낮습니다.${note}`],
+      medium: ["후보 확인", `열린 탭 ${liveTabs}개. 세션과 관련 없는 장기 탭을 확인하세요.${note}`],
+      heavy: ["집중 위험 후보", `탭 ${liveTabs}개. 오래 유지된 탭이 주의 분산 요인이 될 수 있습니다.${note}`]
     },
     manager: {
-      light: ["가볍습니다", `열린 탭 ${liveTabs}개! 아직 가볍게 달릴 수 있어요.${longNote}`],
-      medium: ["정리 타이밍", `열린 탭 ${liveTabs}개! 슬슬 무거워지고 있어요. 안 쓰는 탭부터 정리하고 다시 속도 올립시다.${longNote}`],
-      heavy: ["바로 정리합시다", `탭 ${liveTabs}개가 열려 있어요! 오래 켠 탭부터 닫고 컴퓨터 컨디션 회복 갑시다.${longNote}`]
+      light: ["집중 준비 좋습니다", `열린 탭 ${liveTabs}개! 지금은 크게 막는 후보가 없어요.${note}`],
+      medium: ["후보 잡았습니다", `열린 탭 ${liveTabs}개! 오래 켜둔 탭만 빠르게 체크하고 집중 갑시다.${note}`],
+      heavy: ["주의 분산 후보 있음", `탭 ${liveTabs}개! 지금 목표랑 먼 탭이 있으면 시야 밖으로 밀어봅시다.${note}`]
     }
   };
   const picked = (copy[tone] || copy.concierge)[level] || copy.concierge.light;

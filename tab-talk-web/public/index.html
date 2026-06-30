@@ -209,9 +209,17 @@
             <span><b id="webSleepingTabCount">0</b>잠듦</span>
             <span><b id="webHeavyTabCount">0</b>오래 켜둠</span>
           </div>
-          <p class="mem-caption" id="webMemCaption">오래 켜둔 탭은 컴퓨터를 느리게 만들 수 있어요.</p>
+          <p class="mem-caption" id="webMemCaption">오래 안 본 탭이 생기면 집중 후보로 조용히 알려드릴게요.</p>
         </div>
-        <ul class="sleep-list" id="webSleepList"></ul>
+        <div class="tab-guide" id="webTabGuide" hidden>
+          <span class="tab-guide-label">집중 방해 후보</span>
+          <p class="tab-guide-copy" id="webTabGuideCopy">오래 안 본 탭이 생기면 집사가 알려드릴게요.</p>
+          <div class="tab-guide-sites" id="webTabGuideSites"></div>
+        </div>
+        <details class="tab-detail" id="webTabDetail">
+          <summary>전체 열린 탭 보기</summary>
+          <ul class="sleep-list" id="webSleepList"></ul>
+        </details>
         <p class="progress-caption" id="webSleepEmpty" hidden>열린 탭이 없어요.</p>
       </section>
 

@@ -880,6 +880,54 @@ body {
   color: var(--gray600);
   line-height: 1.45;
 }
+.tab-guide {
+  margin-top: 10px;
+  border: 1px solid #e3e9f0;
+  border-radius: var(--radius-md);
+  background: #fff;
+  padding: 13px;
+}
+.tab-guide-label {
+  display: inline-flex;
+  color: var(--blue-dark);
+  background: var(--blue-soft);
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 11px;
+  font-weight: 900;
+}
+.tab-guide-copy {
+  margin: 8px 0 0;
+  color: var(--gray800);
+  font-size: 14px;
+  line-height: 1.45;
+  font-weight: 750;
+}
+.tab-guide-sites {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.tab-guide-sites span {
+  border: 1px solid #e3e9f0;
+  border-radius: 999px;
+  padding: 5px 10px;
+  color: var(--gray700);
+  background: #f8fafc;
+  font-size: 12px;
+  font-weight: 900;
+}
+.tab-detail {
+  margin-top: 10px;
+}
+.tab-detail summary {
+  cursor: pointer;
+  color: var(--gray600);
+  font-size: 13px;
+  font-weight: 900;
+  list-style-position: inside;
+}
 .sleep-list {
   list-style: none;
   margin: 10px 0 0;

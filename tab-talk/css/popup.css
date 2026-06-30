@@ -132,6 +132,15 @@ body { margin: 0; width: 360px; background: var(--bg); color: var(--gray900);
 .tab-metrics b { display: block; color: var(--gray900); font-size: 15px; line-height: 1.1; }
 .mem-caption { font-size: 11px; color: var(--gray700); margin: 9px 0 0; line-height: 1.45; }
 .mem-caption b { font-weight: 800; }
+.tab-guide { margin-top: 8px; border: 1px solid #e3e9f0; border-radius: 14px; background: #fff; padding: 10px; }
+.tab-guide-label { display: inline-flex; color: var(--blue); background: var(--blue-soft); border-radius: 999px;
+  padding: 3px 8px; font-size: 10px; font-weight: 900; }
+.tab-guide-copy { margin: 7px 0 0; color: var(--gray800); font-size: 12px; line-height: 1.45; font-weight: 700; }
+.tab-guide-sites { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.tab-guide-sites span { border: 1px solid #e3e9f0; border-radius: 999px; padding: 4px 8px;
+  color: var(--gray700); background: #f8fafc; font-size: 11px; font-weight: 800; }
+.tab-detail { margin-top: 8px; }
+.tab-detail summary { cursor: pointer; color: var(--gray600); font-size: 11px; font-weight: 900; list-style-position: inside; }
 
 /* 탭 상태 배지 */
 .tab-badge { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px;
