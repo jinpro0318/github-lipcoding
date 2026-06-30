@@ -79,15 +79,22 @@
           <span class="title-badge" id="tabCount">0개</span>
         </div>
         <div class="mem-box" id="memBox" data-level="light">
-          <div class="mem-status" id="memStatus">
-            <span class="mem-status-title" id="memStatusTitle">쾌적해요 🟢</span>
-            <span class="mem-status-msg" id="memStatusMsg">탭 사용량을 확인하고 있어요.</span>
-          </div>
-          <div class="mem-head">
-            <span class="mem-label" id="memLabel">메모리 부담</span>
-            <span class="mem-val" id="memVal">—</span>
+          <div class="mem-top">
+            <div class="mem-status" id="memStatus">
+              <span class="mem-status-title" id="memStatusTitle">쾌적해요</span>
+              <span class="mem-status-msg" id="memStatusMsg">탭 사용량을 확인하고 있어요.</span>
+            </div>
+            <div class="mem-score">
+              <span class="mem-label" id="memLabel">부담</span>
+              <strong class="mem-val" id="memVal">—</strong>
+            </div>
           </div>
           <div class="mem-track"><div class="mem-fill" id="memFill"></div></div>
+          <div class="tab-metrics" aria-label="탭 상태 요약">
+            <span><b id="liveTabCount">0</b>켜짐</span>
+            <span><b id="sleepingTabCount">0</b>잠듦</span>
+            <span><b id="heavyTabCount">0</b>오래 켜둠</span>
+          </div>
           <p class="mem-caption" id="memCaption">오래 켜둔 탭은 컴퓨터를 느리게 만들 수 있어요.</p>
         </div>
         <ul class="sleep-list" id="sleepList"></ul>

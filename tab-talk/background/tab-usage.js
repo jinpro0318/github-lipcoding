@@ -20,6 +20,11 @@ async function get(key, def) {
 async function set(obj) {
   await chrome.storage.local.set(obj);
 }
+function runSafe(fn) {
+  try {
+    Promise.resolve(fn()).catch(() => {});
+  } catch {}
+}
 async function loadSettings() {
   return await get(SETTINGS_KEY, { tone: "concierge", idleReminder: true, idleTestMode: false });
 }
@@ -282,13 +287,15 @@ async function closeTab(tabId) {
 // 알림: 클릭하면 해당 탭으로 이동
 function notifyTab(tab, message, label) {
   const id = `idletab:${tab.id}:${Date.now()}`;
-  chrome.notifications.create(id, {
-    type: "basic",
-    iconUrl: "/icons/icon128.png",
-    title: `🔔 ${label}`,
-    message,
-    priority: 1
-  });
+  try {
+    chrome.notifications.create(id, {
+      type: "basic",
+      iconUrl: "/icons/icon128.png",
+      title: `🔔 ${label}`,
+      message,
+      priority: 1
+    }, () => void chrome.runtime.lastError);
+  } catch {}
 }
 
 chrome.notifications.onClicked.addListener((id) => {
@@ -300,7 +307,7 @@ chrome.notifications.onClicked.addListener((id) => {
 
 // ---- 리스너/알람 등록 ----
 export function initTabUsage() {
-  chrome.tabs.onCreated.addListener(async (tab) => {
+  chrome.tabs.onCreated.addListener((tab) => runSafe(async () => {
     if (tab.id == null) return;
     const usage = await get(USAGE_KEY, {});
     const rec = usage[tab.id] || {};
@@ -308,38 +315,42 @@ export function initTabUsage() {
     if (!rec.lastAccess) rec.lastAccess = Date.now();
     usage[tab.id] = rec;
     await set({ [USAGE_KEY]: usage });
-  });
-  chrome.tabs.onActivated.addListener(({ tabId }) => touch(tabId));
+  }));
+  chrome.tabs.onActivated.addListener(({ tabId }) => runSafe(() => touch(tabId)));
   chrome.tabs.onUpdated.addListener((tabId, info) => {
-    if (info.status === "complete" || info.url) touch(tabId);
+    if (info.status === "complete" || info.url) runSafe(() => touch(tabId));
   });
-  chrome.tabs.onRemoved.addListener(async (tabId) => {
+  chrome.tabs.onRemoved.addListener((tabId) => runSafe(async () => {
     const usage = await get(USAGE_KEY, {});
     if (usage[tabId]) {
       delete usage[tabId];
       await set({ [USAGE_KEY]: usage });
     }
-  });
+  }));
 
   chrome.alarms.create(SCAN_ALARM, { periodInMinutes: 1 });
   chrome.alarms.onAlarm.addListener((alarm) => {
-    if (alarm.name === SCAN_ALARM) scan();
+    if (alarm.name === SCAN_ALARM) runSafe(scan);
   });
 
   // 방치 탭 관련 메시지 라우팅(다른 핸들러와 공존)
   chrome.runtime.onMessage.addListener((msg, _sender, send) => {
-    if (!msg || !msg.type || !msg.type.startsWith("idle:")) return; // 다른 핸들러 담당
+    if (!msg || !msg.type || !msg.type.startsWith("idle:")) return false; // 다른 핸들러 담당
     (async () => {
-      switch (msg.type) {
-        case "idle:list": send(await buildTabList()); break;
-        case "idle:overview": send(await buildOverview()); break;
-        case "idle:focus": await focusTab(msg.tabId); send(await buildOverview()); break;
-        case "idle:close": await closeTab(msg.tabId); send(await buildOverview()); break;
-        default: send(null);
+      try {
+        switch (msg.type) {
+          case "idle:list": send(await buildTabList()); break;
+          case "idle:overview": send(await buildOverview()); break;
+          case "idle:focus": await focusTab(msg.tabId); send(await buildOverview()); break;
+          case "idle:close": await closeTab(msg.tabId); send(await buildOverview()); break;
+          default: send(null);
+        }
+      } catch {
+        send(null);
       }
     })();
     return true; // 비동기 응답
   });
 
-  scan(); // 시작 시 한 번
+  runSafe(scan); // 시작 시 한 번
 }

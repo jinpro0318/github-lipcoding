@@ -47,6 +47,12 @@ async function set(obj) {
   await chrome.storage.local.set(obj);
 }
 
+function runSafe(fn) {
+  try {
+    Promise.resolve(fn()).catch(() => {});
+  } catch {}
+}
+
 async function loadSession() {
   return (await get(SESSION_KEY, null)) || fresh();
 }
@@ -230,27 +236,31 @@ function clearEscalation() {
   HELPERS.forEach((h) => chrome.alarms.clear("esc:" + h.id));
 }
 
-chrome.alarms.onAlarm.addListener(async (alarm) => {
-  if (!alarm.name.startsWith("esc:")) return;
-  const id = alarm.name.slice(4);
-  const s = await loadSession();
-  if (!s.active || s.present) return;
-  const settings = await loadSettings();
-  const t = TONE[settings.tone] || TONE.concierge;
-  const helper = HELPERS.find((h) => h.id === id);
-  s.activeHelper = id;
-  await set({ [SESSION_KEY]: s });
-  notify(helper?.name || "탭talk", t.helpers[id] || t.helpers.concierge);
+chrome.alarms.onAlarm.addListener((alarm) => {
+  runSafe(async () => {
+    if (!alarm.name.startsWith("esc:")) return;
+    const id = alarm.name.slice(4);
+    const s = await loadSession();
+    if (!s.active || s.present) return;
+    const settings = await loadSettings();
+    const t = TONE[settings.tone] || TONE.concierge;
+    const helper = HELPERS.find((h) => h.id === id);
+    s.activeHelper = id;
+    await set({ [SESSION_KEY]: s });
+    notify((helper && helper.name) || "탭talk", t.helpers[id] || t.helpers.concierge);
+  });
 });
 
 function notify(title, message) {
-  chrome.notifications.create("tabtalk:" + Date.now(), {
-    type: "basic",
-    iconUrl: "/icons/icon128.png",
-    title,
-    message,
-    priority: 1
-  });
+  try {
+    chrome.notifications.create("tabtalk:" + Date.now(), {
+      type: "basic",
+      iconUrl: "/icons/icon128.png",
+      title,
+      message,
+      priority: 1
+    }, () => void chrome.runtime.lastError);
+  } catch {}
 }
 
 // ---- 딴짓 경고 디스패치 (옵션: nudge | popup) ----
@@ -335,39 +345,53 @@ async function answerClassification(host, answer) {
 }
 
 // ---- 탭/창 이벤트 → 재평가 ----
-chrome.tabs.onActivated.addListener(() => evaluate());
-chrome.tabs.onUpdated.addListener((_, info) => info.url && evaluate());
-chrome.windows.onFocusChanged.addListener(() => evaluate());
+chrome.tabs.onActivated.addListener(() => runSafe(evaluate));
+chrome.tabs.onUpdated.addListener((_, info) => { if (info.url) runSafe(evaluate); });
+chrome.windows.onFocusChanged.addListener(() => runSafe(evaluate));
 
 chrome.runtime.onMessage.addListener((msg, _sender, send) => {
-  if (msg && typeof msg.type === "string" && msg.type.startsWith("idle:")) return; // tab-usage 담당
+  if (!msg || typeof msg.type !== "string") return false;
+  if (msg.type.startsWith("idle:")) return false; // tab-usage 담당
   (async () => {
-    switch (msg.type) {
-      case "start": await startSession(msg.goalMin); break;
-      case "stop": await stopSession(); break;
-      case "reset": await set({ [STATS_KEY]: freshStats(), [DOMAIN_KEY]: freshDomain() }); break;
-      case "tone": {
-        const st = await loadSettings();
-        st.tone = msg.tone;
-        await set({ [SETTINGS_KEY]: st });
-        break;
+    try {
+      switch (msg.type) {
+        case "start": await startSession(msg.goalMin); break;
+        case "stop": await stopSession(); break;
+        case "reset": await set({ [STATS_KEY]: freshStats(), [DOMAIN_KEY]: freshDomain() }); break;
+        case "tone": {
+          const st = await loadSettings();
+          st.tone = msg.tone;
+          await set({ [SETTINGS_KEY]: st });
+          break;
+        }
+        case "classify-answer": await answerClassification(msg.host, msg.answer); break;
       }
-      case "classify-answer": await answerClassification(msg.host, msg.answer); break;
+      await evaluate();
+      send({
+        session: await loadSession(),
+        stats: await loadStats(),
+        settings: await loadSettings(),
+        classification: await get(CLASSIFY_KEY, null),
+        domainStats: await loadDomain()
+      });
+    } catch (err) {
+      send({
+        error: (err && err.message) || String(err),
+        session: fresh(),
+        stats: freshStats(),
+        settings: await loadSettings().catch(() => ({ tone: "concierge" })),
+        classification: await get(CLASSIFY_KEY, null).catch(() => null),
+        domainStats: freshDomain()
+      });
     }
-    await evaluate();
-    send({
-      session: await loadSession(),
-      stats: await loadStats(),
-      settings: await loadSettings(),
-      classification: await get(CLASSIFY_KEY, null),
-      domainStats: await loadDomain()
-    });
   })();
   return true; // 비동기 응답
 });
 
-chrome.runtime.onInstalled.addListener(async () => {
-  if (!(await get(SESSION_KEY, null))) await set({ [SESSION_KEY]: fresh() });
+chrome.runtime.onInstalled.addListener(() => {
+  runSafe(async () => {
+    if (!(await get(SESSION_KEY, null))) await set({ [SESSION_KEY]: fresh() });
+  });
 });
 
 // 방치된 탭 추적 & 단계별 안내 모듈 시작

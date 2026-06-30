@@ -186,6 +186,35 @@
         <p class="progress-caption" id="domainEmpty">세션을 시작하면 사이트별 체류 시간을 모아 보여드려요.</p>
       </section>
 
+      <!-- 열린 탭 · 메모리 (확장 연결 시) -->
+      <section class="card tab-health-card" id="tabHealthCard" hidden>
+        <div class="card-head">
+          <h2>열린 탭 · 메모리</h2>
+          <span class="title-badge" id="webTabCount">0개</span>
+        </div>
+        <div class="mem-box" id="webMemBox" data-level="light">
+          <div class="mem-top">
+            <div class="mem-status">
+              <span class="mem-status-title" id="webMemStatusTitle">쾌적해요</span>
+              <span class="mem-status-msg" id="webMemStatusMsg">확장에서 탭 사용량을 불러오고 있어요.</span>
+            </div>
+            <div class="mem-score">
+              <span class="mem-label" id="webMemLabel">부담</span>
+              <strong class="mem-val" id="webMemVal">—</strong>
+            </div>
+          </div>
+          <div class="mem-track"><div class="mem-fill" id="webMemFill"></div></div>
+          <div class="tab-metrics" aria-label="탭 상태 요약">
+            <span><b id="webLiveTabCount">0</b>켜짐</span>
+            <span><b id="webSleepingTabCount">0</b>잠듦</span>
+            <span><b id="webHeavyTabCount">0</b>오래 켜둠</span>
+          </div>
+          <p class="mem-caption" id="webMemCaption">오래 켜둔 탭은 컴퓨터를 느리게 만들 수 있어요.</p>
+        </div>
+        <ul class="sleep-list" id="webSleepList"></ul>
+        <p class="progress-caption" id="webSleepEmpty" hidden>열린 탭이 없어요.</p>
+      </section>
+
       <!-- AI 코치 -->
       <section class="card coach-card">
         <div class="card-head">

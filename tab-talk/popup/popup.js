@@ -21,7 +21,19 @@ function fmtClock(ms) {
 
 function send(type, extra) {
   return new Promise((res) => {
-    chrome.runtime.sendMessage({ type, ...extra }, (r) => res(r));
+    try {
+      chrome.runtime.sendMessage({ type, ...extra }, (r) => {
+        if (chrome.runtime.lastError) {
+          console.warn("탭talk 백그라운드 응답 실패:", chrome.runtime.lastError.message);
+          res(null);
+          return;
+        }
+        res(r || null);
+      });
+    } catch (err) {
+      console.warn("탭talk 메시지 전송 실패:", err);
+      res(null);
+    }
   });
 }
 
@@ -94,7 +106,7 @@ function render() {
   const total = stats.focusMs + stats.distractMs;
   const ratio = total === 0 ? 1 : stats.focusMs / total;
   el("focusBar").style.width = `${Math.round(ratio * 100)}%`;
-  el("titleBadge").textContent = (TITLES.find((x) => ratio >= x.min) || TITLES.at(-1)).label;
+  el("titleBadge").textContent = (TITLES.find((x) => ratio >= x.min) || TITLES[TITLES.length - 1]).label;
   el("focusCaption").textContent = total === 0
     ? "아직 기록이 없어요. 첫 세션을 시작해볼까요?"
     : `오늘 몰입 비율 ${Math.round(ratio * 100)}% · 복귀 ${stats.returnCount}회`;
@@ -131,7 +143,11 @@ function render() {
 
 async function refresh() {
   state = await send("ping");
-  tone = state?.settings?.tone || tone;
+  if (!state) {
+    toast("확장 백그라운드를 불러오는 중이에요. 잠시 후 다시 열어주세요.");
+    return;
+  }
+  tone = (state && state.settings && state.settings.tone) || tone;
   document.querySelectorAll(".tone-chip").forEach((b) => b.classList.toggle("is-active", b.dataset.tone === tone));
   setMascot(tone);
   paintButlers();
@@ -152,7 +168,7 @@ const CAT_ICON = { work: "💼", video: "🎬", shopping: "🛍️", sns: "📸"
 
 // 오늘 사이트별 체류 시간 카드
 function renderDomains() {
-  const d = state?.domainStats;
+  const d = state && state.domainStats;
   const hosts = d && d.hosts ? d.hosts : {};
   const rows = Object.entries(hosts)
     .map(([host, r]) => ({ host, ms: r.ms || 0, category: r.category || "etc" }))
@@ -187,7 +203,12 @@ function fmtGB(bytes) {
 async function renderTabs() {
   const ov = (await send("idle:overview")) || { tabs: [], total: 0, discarded: 0, memory: null, load: null, current: null };
   const tabs = ov.tabs || [];
+  const liveTabs = tabs.filter((it) => !it.discarded).length;
+  const heavyTabs = tabs.filter((it) => it.heavy).length;
   el("tabCount").textContent = `${ov.total}개`;
+  el("liveTabCount").textContent = String(liveTabs);
+  el("sleepingTabCount").textContent = String(ov.discarded || 0);
+  el("heavyTabCount").textContent = String(heavyTabs);
 
   // 부담 상태 배너 (색상으로 구분)
   const load = ov.load || { level: "light", pct: 0, title: "쾌적해요 🟢", message: "", source: "tabs" };
@@ -198,10 +219,10 @@ async function renderTabs() {
 
   // 게이지 라벨: 메모리 권한이 있으면 실제 메모리, 없으면 부담 지수
   if (load.source === "memory" && ov.memory && ov.memory.capacity) {
-    el("memLabel").textContent = "시스템 메모리";
-    el("memVal").textContent = `${load.pct}% · ${fmtGB(ov.memory.capacity - ov.memory.available)}/${fmtGB(ov.memory.capacity)}GB`;
+    el("memLabel").textContent = "메모리";
+    el("memVal").textContent = `${load.pct}%`;
   } else {
-    el("memLabel").textContent = "메모리 부담";
+    el("memLabel").textContent = "부담";
     el("memVal").textContent = `${load.pct}%`;
   }
 
@@ -215,12 +236,14 @@ async function renderTabs() {
     el("memCaption").textContent = "오래 켜둔 탭은 컴퓨터를 느리게 만들 수 있어요.";
   }
 
+  const priorityTabs = tabs.filter((it) => it.active || it.heavy || it.discarded || it.level >= 2);
+  const visibleTabs = (priorityTabs.length ? priorityTabs : tabs).slice(0, 4);
   el("sleepEmpty").hidden = tabs.length > 0;
   const ul = el("sleepList");
   ul.innerHTML = "";
-  tabs.forEach((it) => {
+  visibleTabs.forEach((it) => {
     const li = document.createElement("li");
-    li.className = `sleep-item${it.active ? " is-live" : ""}${it.discarded ? " is-sleep" : ""}${it.heavy ? " is-heavy" : ""}`;
+    li.className = `sleep-item lv${it.level || 0}${it.active ? " is-live" : ""}${it.discarded ? " is-sleep" : ""}${it.heavy ? " is-heavy" : ""}`;
     const fav = it.favIconUrl
       ? `<img class="sleep-fav" src="${it.favIconUrl}" alt="" />`
       : `<span class="sleep-fav ph">🗂️</span>`;
@@ -242,11 +265,17 @@ async function renderTabs() {
     if (cl) cl.onclick = async () => { await send("idle:close", { tabId: it.tabId }); renderTabs(); toast("탭을 정리했어요"); };
     ul.appendChild(li);
   });
+  if (tabs.length > visibleTabs.length) {
+    const more = document.createElement("li");
+    more.className = "sleep-more";
+    more.textContent = `나머지 ${tabs.length - visibleTabs.length}개 탭은 가볍게 숨겼어요.`;
+    ul.appendChild(more);
+  }
 }
 
 // 코치 (규칙 기반)
-function coach() {  const s = state?.stats;
-  const total = (s?.focusMs || 0) + (s?.distractMs || 0);
+function coach() {  const s = state && state.stats;
+  const total = ((s && s.focusMs) || 0) + ((s && s.distractMs) || 0);
   if (!total) { el("coachHeadline").textContent = "오늘 첫 세션을 시작해보면 코칭을 드릴게요."; return; }
   const ratio = s.focusMs / total;
   el("coachHeadline").textContent = ratio >= 0.7 ? "오늘 집중 흐름이 아주 좋아요." : ratio >= 0.4 ? "집중과 딴짓이 반반이에요." : "오늘은 딴짓 유혹이 강했네요.";

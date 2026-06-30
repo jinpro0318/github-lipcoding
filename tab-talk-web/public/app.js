@@ -1287,6 +1287,7 @@ function applyExtState(payload) {
     }
   }
   if (payload.domainStats) renderDomainCard(payload.domainStats);
+  if (payload.tabOverview) renderTabHealthCard(payload.tabOverview);
 }
 
 // 오늘 사이트별 시간 카드 (확장 데이터 기반)
@@ -1317,6 +1318,76 @@ function renderDomainCard(d) {
       `<span class="domain-min">${min}분</span>`;
     ul.appendChild(li);
   });
+}
+
+function fmtGB(bytes) {
+  return (bytes / 1073741824).toFixed(1);
+}
+
+function renderTabHealthCard(ov) {
+  const card = el("tabHealthCard");
+  if (!card) return;
+  card.hidden = false;
+  const tabs = (ov && ov.tabs) || [];
+  const load = (ov && ov.load) || { level: "light", pct: 0, title: "쾌적해요", message: "확장에서 탭 사용량을 확인하고 있어요.", source: "tabs" };
+  const liveTabs = tabs.filter((it) => !it.discarded).length;
+  const heavyTabs = tabs.filter((it) => it.heavy).length;
+
+  el("webTabCount").textContent = `${(ov && ov.total) || tabs.length}개`;
+  el("webLiveTabCount").textContent = String(liveTabs);
+  el("webSleepingTabCount").textContent = String((ov && ov.discarded) || 0);
+  el("webHeavyTabCount").textContent = String(heavyTabs);
+  el("webMemBox").dataset.level = load.level || "light";
+  el("webMemStatusTitle").textContent = load.title || "쾌적해요";
+  el("webMemStatusMsg").textContent = load.message || "탭 사용량을 확인하고 있어요.";
+  el("webMemFill").style.width = `${load.pct || 0}%`;
+  el("webMemLabel").textContent = load.source === "memory" ? "메모리" : "부담";
+  el("webMemVal").textContent = `${load.pct || 0}%`;
+
+  if (load.source === "memory" && ov.memory && ov.memory.capacity) {
+    const used = fmtGB(ov.memory.capacity - ov.memory.available);
+    const total = fmtGB(ov.memory.capacity);
+    el("webMemCaption").textContent = `시스템 메모리 ${used}/${total}GB 사용 중이에요. 오래 켠 탭부터 정리하면 부담이 줄어요.`;
+  } else if (ov.current) {
+    el("webMemCaption").textContent = ov.current.heavy
+      ? `지금 보는 ${ov.current.domain} 탭이 ${ov.current.openLabel} 열려 있어요. 필요 없으면 정리해도 좋아요.`
+      : `지금 보는 ${ov.current.domain} 탭은 ${ov.current.openLabel}. 아직 가벼워요.`;
+  } else {
+    el("webMemCaption").textContent = "오래 켜둔 탭은 컴퓨터를 느리게 만들 수 있어요.";
+  }
+
+  const priorityTabs = tabs.filter((it) => it.active || it.heavy || it.discarded || it.level >= 2);
+  const visibleTabs = (priorityTabs.length ? priorityTabs : tabs).slice(0, 4);
+  el("webSleepEmpty").hidden = tabs.length > 0;
+  const ul = el("webSleepList");
+  ul.innerHTML = "";
+  visibleTabs.forEach((it) => {
+    const li = document.createElement("li");
+    li.className = `sleep-item lv${it.level || 0}${it.active ? " is-live" : ""}${it.discarded ? " is-sleep" : ""}${it.heavy ? " is-heavy" : ""}`;
+    const fav = it.favIconUrl
+      ? `<img class="sleep-fav" src="${it.favIconUrl}" alt="" />`
+      : `<span class="sleep-fav ph"><i data-lucide="panel-top"></i></span>`;
+    const badge = it.active ? `<span class="tab-badge live">보는 중</span>`
+      : it.discarded ? `<span class="tab-badge sleep">잠듦</span>`
+      : it.heavy ? `<span class="tab-badge heavy">오래 켜둠</span>` : "";
+    li.innerHTML =
+      fav +
+      `<div class="sleep-main"><p class="sleep-msg">${it.title}${badge}</p>` +
+      `<span class="sleep-meta">${it.domain} · ${it.openLabel}${it.active ? "" : ` · ${it.idleLabel}`}</span></div>` +
+      `<div class="sleep-actions"><button class="sleep-open" title="이 탭 열기">열기</button>` +
+      `${it.active ? "" : `<button class="sleep-close" title="이 탭 닫기">닫기</button>`}</div>`;
+    li.querySelector(".sleep-open").onclick = () => postToExt({ type: "idle:focus", tabId: it.tabId });
+    const closeBtn = li.querySelector(".sleep-close");
+    if (closeBtn) closeBtn.onclick = () => postToExt({ type: "idle:close", tabId: it.tabId });
+    ul.appendChild(li);
+  });
+  if (tabs.length > visibleTabs.length) {
+    const more = document.createElement("li");
+    more.className = "sleep-more";
+    more.textContent = `나머지 ${tabs.length - visibleTabs.length}개 탭은 요약에만 반영했어요.`;
+    ul.appendChild(more);
+  }
+  if (window.lucide) window.lucide.createIcons();
 }
 
 window.addEventListener("message", (e) => {

@@ -31,7 +31,6 @@ export const DEFAULT_WORK = [
   "figma.com",
   "atlassian.net",
   "slack.com",
-  "vercel.com",
   "azure.com",
   "developer.mozilla.org",
   "localhost",
@@ -51,8 +50,8 @@ export function hostOf(url) {
 export function classify(url, lists) {
   const host = hostOf(url);
   if (!host) return "neutral";
-  const distract = [...DEFAULT_DISTRACT, ...(lists?.blocklist || [])];
-  const work = [...DEFAULT_WORK, ...(lists?.allowlist || [])];
+  const distract = DEFAULT_DISTRACT.concat((lists && lists.blocklist) || []);
+  const work = DEFAULT_WORK.concat((lists && lists.allowlist) || []);
   const match = (arr) => arr.some((d) => host === d || host.endsWith("." + d));
   if (match(distract)) return "distract";
   if (match(work)) return "work";

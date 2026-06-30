@@ -128,7 +128,7 @@ az webapp config set \
   --startup-file "npm start"
 ```
 
-배포 후 `https://tabtalk-<고유접미사>.azurewebsites.net` 에서 접속합니다.
+배포 후 `https://tabtalk-jinpro0318-162012.azurewebsites.net` 에서 접속합니다.
 
 ## 더 보기
 

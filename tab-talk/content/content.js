@@ -3,7 +3,24 @@
 // 멘트는 현재 사이트 종류(카테고리)와 선택된 집사 톤에 맞춰 매번 랜덤으로 고른다.
 (() => {
   let bar = null;
-  let lastIdx = -1;
+  let extensionAlive = true;
+
+  function markExtensionDead(err) {
+    if (!err || !String(err.message || err).includes("Extension context invalidated")) return;
+    extensionAlive = false;
+    remove();
+    removeAsk();
+  }
+
+  function chromeSafe(fn, fallback) {
+    if (!extensionAlive) return fallback;
+    try {
+      return fn();
+    } catch (err) {
+      markExtensionDead(err);
+      return fallback;
+    }
+  }
 
   // 딴짓 사이트 종류 매핑 (classify.js의 CATEGORY_MAP과 동일 기준)
   const CATEGORY_MAP = {
@@ -209,66 +226,132 @@
     return MASCOTS[tone] || MASCOTS.concierge;
   }
 
-  // 직전에 뜬 줄은 제외하고 랜덤으로 한 줄 고르기 (연속 중복 방지)
+  function createFace(tone) {
+    const face = document.createElement("span");
+    face.className = "face";
+    try {
+      const doc = new DOMParser().parseFromString(butlerFace(tone), "image/svg+xml");
+      const svg = doc.documentElement;
+      if (svg && svg.nodeName.toLowerCase() === "svg") face.appendChild(document.importNode(svg, true));
+    } catch {}
+    return face;
+  }
+
+  function createText(className, text) {
+    const span = document.createElement("span");
+    span.className = className;
+    span.textContent = text;
+    return span;
+  }
+
+  function createButton(className, text, title) {
+    const button = document.createElement("button");
+    button.className = className;
+    button.textContent = text;
+    if (title) button.title = title;
+    return button;
+  }
+
+  function mountNudge(node, isCurrent) {
+    try {
+      if (!document.body) return false;
+      document.body.appendChild(node);
+      requestAnimationFrame(() => {
+        try {
+          if (isCurrent() && node.isConnected && !/(^|\s)show(\s|$)/.test(node.className)) {
+            node.className += " show";
+          }
+        } catch {}
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function unmountNudge(node) {
+    try {
+      if (!node) return;
+      node.className = node.className.replace(/(^|\s)show(\s|$)/g, " ").trim();
+      setTimeout(() => {
+        try {
+          if (node.isConnected) node.remove();
+        } catch {}
+      }, 350);
+    } catch {}
+  }
+
+  // 현재 사이트 종류에 맞는 멘트 중 한 줄 고르기
   function pickLine(pool) {
     if (!pool || pool.length === 0) return "";
-    if (pool.length === 1) return pool[0];
-    let i;
-    do {
-      i = Math.floor(Math.random() * pool.length);
-    } while (i === lastIdx);
-    lastIdx = i;
-    return pool[i];
+    return pool[Math.floor(Math.random() * pool.length)];
   }
 
   function messageFor(tone) {
     const pack = LINES[tone] || LINES.concierge;
     const cat = categoryOf(location.hostname);
-    return pickLine(pack[cat] || pack.etc);
+    let pool = [];
+    if (pack && Array.isArray(pack[cat])) {
+      pool = pack[cat];
+    } else if (pack && Array.isArray(pack.etc)) {
+      pool = pack.etc;
+    }
+    return pickLine(pool);
   }
 
   function show(tone) {
     if (bar) return;
-    bar = document.createElement("div");
-    bar.className = "tabtalk-nudge";
-    bar.innerHTML = `<span class="face">${butlerFace(tone)}</span><span class="msg">${messageFor(tone)}</span><button class="close" title="닫기">✕</button>`;
-    bar.querySelector(".close").onclick = remove;
-    document.body.appendChild(bar);
-    requestAnimationFrame(() => bar.classList.add("show"));
+    const nextBar = document.createElement("div");
+    nextBar.className = "tabtalk-nudge";
+    const closeButton = createButton("close", "x", "닫기");
+    closeButton.onclick = remove;
+    nextBar.append(createFace(tone), createText("msg", messageFor(tone)), closeButton);
+    bar = nextBar;
+    if (!mountNudge(nextBar, () => bar === nextBar)) bar = null;
   }
   function remove() {
     if (!bar) return;
-    bar.classList.remove("show");
-    const b = bar; bar = null;
-    setTimeout(() => b.remove(), 350);
+    const currentBar = bar;
+    bar = null;
+    unmountNudge(currentBar);
   }
 
   // 중립 도메인 1회 물어보기 넛지 (업무/딴짓 버튼)
   let askBar = null;
   function showAsk(host, tone) {
     if (askBar) return;
-    askBar = document.createElement("div");
-    askBar.className = "tabtalk-nudge tabtalk-ask";
-    askBar.innerHTML =
-      `<span class="face">${butlerFace(tone)}</span>` +
-      `<span class="msg">주인님, '${host}'는 업무 동료인가요, 딴짓 친구인가요?</span>` +
-      `<button class="ask-yes">업무예요</button>` +
-      `<button class="ask-no">딴짓이에요</button>` +
-      `<button class="close" title="나중에">✕</button>`;
-    askBar.querySelector(".ask-yes").onclick = () => answer(host, "work");
-    askBar.querySelector(".ask-no").onclick = () => answer(host, "distract");
-    askBar.querySelector(".close").onclick = () => answer(host, "skip");
-    document.body.appendChild(askBar);
-    requestAnimationFrame(() => askBar.classList.add("show"));
+    const nextAskBar = document.createElement("div");
+    nextAskBar.className = "tabtalk-nudge tabtalk-ask";
+    const yesButton = createButton("ask-yes", "업무예요");
+    const noButton = createButton("ask-no", "딴짓이에요");
+    const closeButton = createButton("close", "x", "나중에");
+    yesButton.onclick = () => answer(host, "work");
+    noButton.onclick = () => answer(host, "distract");
+    closeButton.onclick = () => answer(host, "skip");
+    nextAskBar.append(
+      createFace(tone),
+      createText("msg", `주인님, '${host}'는 업무 동료인가요, 딴짓 친구인가요?`),
+      yesButton,
+      noButton,
+      closeButton
+    );
+    askBar = nextAskBar;
+    if (!mountNudge(nextAskBar, () => askBar === nextAskBar)) askBar = null;
   }
   function removeAsk() {
     if (!askBar) return;
-    askBar.classList.remove("show");
-    const b = askBar; askBar = null;
-    setTimeout(() => b.remove(), 350);
+    const currentAskBar = askBar;
+    askBar = null;
+    unmountNudge(currentAskBar);
   }
   function answer(host, ans) {
-    try { if (chrome.runtime && chrome.runtime.id) chrome.runtime.sendMessage({ type: "classify-answer", host, answer: ans }); } catch {}
+    chromeSafe(() => {
+      if (chrome.runtime && chrome.runtime.id) {
+        chrome.runtime.sendMessage({ type: "classify-answer", host, answer: ans }, () => {
+          chromeSafe(() => void chrome.runtime.lastError, null);
+        });
+      }
+    }, null);
     removeAsk();
   }
 
@@ -303,25 +386,31 @@
   // 무효화된 컨텍스트로 chrome.* 를 호출해 "Extension context invalidated" 오류를 낸다.
   // 모든 chrome 접근을 가드해 조용히 무시하도록 한다.
   const alive = () => {
-    try { return !!(chrome.runtime && chrome.runtime.id); } catch { return false; }
+    return chromeSafe(() => !!(chrome.runtime && chrome.runtime.id), false);
   };
 
   const read = () => {
     if (!alive()) return;
-    try {
+    chromeSafe(() => {
       chrome.storage.local.get(["session", "settings", "ask"], (o) => {
-        if (chrome.runtime.lastError) return;
-        evaluate(o.session, o.settings, o.ask);
+        // 비동기 콜백이 실행될 때 확장이 이미 무효화됐을 수 있으므로 여기서도 가드한다.
+        chromeSafe(() => {
+          if (!alive()) return;
+          if (chrome.runtime.lastError) return;
+          evaluate(o.session, o.settings, o.ask);
+        }, null);
       });
-    } catch {}
+    }, null);
   };
-  read();
-  try {
+  try { read(); } catch {}
+  chromeSafe(() => {
     chrome.storage.onChanged.addListener((c) => {
-      if (!alive()) return;
-      if (c.session || c.settings || c.ask) read();
+      chromeSafe(() => {
+        if (!alive()) return;
+        if (c.session || c.settings || c.ask) read();
+      }, null);
     });
-  } catch {}
+  }, null);
   // 탭을 보거나 숨길 때마다 다시 판단 (숨은 탭에서는 알림 제거)
-  document.addEventListener("visibilitychange", read);
+  try { document.addEventListener("visibilitychange", () => { try { read(); } catch {} }); } catch {}
 })();
