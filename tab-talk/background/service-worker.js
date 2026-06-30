@@ -1,0 +1,354 @@
+// 탭talk 백그라운드 — 실제 활성 탭 도메인을 읽어 업무/딴짓/중립을 판별하고
+// 집중 세션 시간을 측정, 딴짓이 길어지면 단계별 알림으로 정중히 복귀를 유도한다.
+// 또한 분류 상태/도메인별 시간 통계를 storage에 기록해 팝업·웹앱 대시보드가 공유한다.
+// 상태는 chrome.storage.local에 저장해 팝업이 닫혀도 유지된다.
+
+import { classify, category, hostOf } from "./classify.js";
+import { TONE, HELPERS, GRACE_MS, todayKey } from "./shared.js";
+import { initTabUsage } from "./tab-usage.js";
+
+const SESSION_KEY = "session";
+const STATS_KEY = "stats";
+const SETTINGS_KEY = "settings";
+const CLASSIFY_KEY = "classification"; // {kind, host, focused} — 브리지가 웹앱으로 전파
+const DOMAIN_KEY = "domainStats";      // {date, hosts:{host:{ms,category}}}
+const ASK_KEY = "ask";                 // {host} — 중립 도메인 1회 물어보기
+
+const fresh = () => ({
+  active: false,
+  present: true,
+  startedAt: 0,
+  lastTick: 0,
+  focusMs: 0,
+  awaySince: 0,
+  goalMin: 25,
+  sessionDistractMs: 0,
+  sessionDistractCount: 0,
+  activeHelper: "concierge",
+  activeHost: "",
+  activeKind: "neutral"
+});
+
+const freshStats = () => ({
+  date: todayKey(),
+  focusMs: 0,
+  distractMs: 0,
+  distractCount: 0,
+  returnCount: 0
+});
+
+const freshDomain = () => ({ date: todayKey(), hosts: {} });
+
+async function get(key, def) {
+  const o = await chrome.storage.local.get(key);
+  return o[key] ?? def;
+}
+async function set(obj) {
+  await chrome.storage.local.set(obj);
+}
+
+async function loadSession() {
+  return (await get(SESSION_KEY, null)) || fresh();
+}
+async function loadStats() {
+  let s = await get(STATS_KEY, null);
+  if (!s || s.date !== todayKey()) s = freshStats();
+  return s;
+}
+async function loadDomain() {
+  let d = await get(DOMAIN_KEY, null);
+  if (!d || d.date !== todayKey()) d = freshDomain();
+  return d;
+}
+async function loadSettings() {
+  return {
+    tone: "concierge",
+    allowlist: [],
+    blocklist: [],
+    warnStyle: "nudge",
+    askedHosts: [],
+    ...((await get(SETTINGS_KEY, null)) || {})
+  };
+}
+
+// 현재 활성 탭/포커스/분류를 한 번에 조사
+async function probe() {
+  try {
+    const lastFocused = await chrome.windows.getLastFocused();
+    const focused = !!lastFocused.focused;
+    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    const url = tab && tab.url ? tab.url : "";
+    const settings = await loadSettings();
+    const kind = url ? classify(url, settings) : "neutral";
+    return { focused, host: hostOf(url), kind, url };
+  } catch {
+    return { focused: true, host: "", kind: "neutral", url: "" };
+  }
+}
+
+// 분류 상태를 storage에 반영 (브리지가 웹앱으로 자동 전파)
+async function broadcastClassification(p) {
+  const prev = await get(CLASSIFY_KEY, null);
+  if (prev && prev.kind === p.kind && prev.host === p.host && prev.focused === p.focused) return;
+  await set({ [CLASSIFY_KEY]: { kind: p.kind, host: p.host, focused: p.focused, at: Date.now() } });
+}
+
+// 도메인별 체류시간 누적 (직전 활성 host에 귀속)
+async function addDomainTime(host, kind, delta) {
+  if (!host || delta <= 0 || delta > 5 * 60000) return;
+  const d = await loadDomain();
+  const cat = kind === "distract" ? category("https://" + host) : kind;
+  const rec = d.hosts[host] || { ms: 0, category: cat };
+  rec.ms += delta;
+  rec.category = cat;
+  d.hosts[host] = rec;
+  await set({ [DOMAIN_KEY]: d });
+}
+
+// 중립 도메인이면 1회 물어보기 상태를 켜고, 아니면 끈다
+async function updateAsk(p, settings, sessionActive) {
+  const cur = await get(ASK_KEY, null);
+  const decided =
+    settings.allowlist.includes(p.host) ||
+    settings.blocklist.includes(p.host) ||
+    (settings.askedHosts || []).includes(p.host);
+  const shouldAsk = sessionActive && p.focused && p.kind === "neutral" && p.host && !decided;
+  if (shouldAsk) {
+    if (!cur || cur.host !== p.host) await set({ [ASK_KEY]: { host: p.host } });
+  } else if (cur) {
+    await set({ [ASK_KEY]: null });
+  }
+}
+
+// 누적 반영: 직전 구간(lastTick→now)을 직전 상태/직전 활성 host에 귀속시킨다.
+async function accumulate(present, p) {
+  const s = await loadSession();
+  if (!s.active) return;
+  const now = Date.now();
+  const delta = s.lastTick ? now - s.lastTick : 0;
+  if (delta > 0 && delta < 5 * 60000) {
+    if (s.present) {
+      s.focusMs += delta;
+      const stats = await loadStats();
+      stats.focusMs += delta;
+      await set({ [STATS_KEY]: stats });
+    }
+    if (s.activeHost) await addDomainTime(s.activeHost, s.activeKind, delta);
+  }
+  s.lastTick = now;
+  s.present = present;
+  if (p) {
+    s.activeHost = p.focused ? p.host : "";
+    s.activeKind = p.kind;
+  }
+  await set({ [SESSION_KEY]: s });
+}
+
+async function onLeave(p) {
+  const s = await loadSession();
+  if (!s.active || !s.present) return;
+  await accumulate(false, p);
+  const s2 = await loadSession();
+  s2.awaySince = Date.now();
+  await set({ [SESSION_KEY]: s2 });
+  scheduleEscalation();
+  dispatchWarning(p);
+}
+
+async function onReturn(p) {
+  const s = await loadSession();
+  if (!s.active || s.present) return;
+  const awayMs = s.awaySince ? Date.now() - s.awaySince : 0;
+  s.present = true;
+  s.lastTick = Date.now();
+  s.awaySince = 0;
+  s.activeHelper = "concierge";
+  if (p) { s.activeHost = p.focused ? p.host : ""; s.activeKind = p.kind; }
+  clearEscalation();
+  clearWarning();
+  if (awayMs >= GRACE_MS) {
+    s.sessionDistractMs += awayMs;
+    s.sessionDistractCount += 1;
+    const stats = await loadStats();
+    stats.distractMs += awayMs;
+    stats.distractCount += 1;
+    stats.returnCount += 1;
+    await set({ [STATS_KEY]: stats });
+    const settings = await loadSettings();
+    const t = TONE[settings.tone] || TONE.concierge;
+    notify("탭talk", t.welcome);
+  }
+  await set({ [SESSION_KEY]: s });
+}
+
+async function evaluate() {
+  const p = await probe();
+  await broadcastClassification(p);
+  const settings = await loadSettings();
+  const s = await loadSession();
+  await updateAsk(p, settings, s.active);
+  if (!s.active) return;
+  const present = p.focused && p.kind !== "distract";
+  if (present && !s.present) await onReturn(p);
+  else if (!present && s.present) await onLeave(p);
+  else await accumulate(present, p);
+}
+
+// ---- 단계별 도우미 알림 (chrome.alarms) ----
+function scheduleEscalation() {
+  clearEscalation();
+  HELPERS.filter((h) => h.afterSec > 0).forEach((h) => {
+    chrome.alarms.create("esc:" + h.id, { when: Date.now() + h.afterSec * 1000 });
+  });
+}
+function clearEscalation() {
+  HELPERS.forEach((h) => chrome.alarms.clear("esc:" + h.id));
+}
+
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (!alarm.name.startsWith("esc:")) return;
+  const id = alarm.name.slice(4);
+  const s = await loadSession();
+  if (!s.active || s.present) return;
+  const settings = await loadSettings();
+  const t = TONE[settings.tone] || TONE.concierge;
+  const helper = HELPERS.find((h) => h.id === id);
+  s.activeHelper = id;
+  await set({ [SESSION_KEY]: s });
+  notify(helper?.name || "탭talk", t.helpers[id] || t.helpers.concierge);
+});
+
+function notify(title, message) {
+  chrome.notifications.create("tabtalk:" + Date.now(), {
+    type: "basic",
+    iconUrl: "/icons/icon128.png",
+    title,
+    message,
+    priority: 1
+  });
+}
+
+// ---- 딴짓 경고 디스패치 (옵션: nudge | popup | sidepanel) ----
+let warnWindowId = null;
+
+async function dispatchWarning(p) {
+  const settings = await loadSettings();
+  const style = settings.warnStyle || "nudge";
+  if (style === "popup") {
+    try {
+      if (warnWindowId != null) {
+        try { await chrome.windows.get(warnWindowId); return; } catch { warnWindowId = null; }
+      }
+      const w = await chrome.windows.create({
+        url: "warn/warn.html",
+        type: "popup",
+        width: 360,
+        height: 240,
+        focused: true
+      });
+      warnWindowId = w.id;
+    } catch {}
+  } else if (style === "sidepanel") {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+      if (tab) {
+        await chrome.sidePanel.setOptions({ tabId: tab.id, path: "warn/warn.html", enabled: true });
+        await chrome.sidePanel.open({ tabId: tab.id });
+      }
+    } catch {}
+  }
+  // nudge는 content.js가 session.present 변화로 자동 처리
+}
+
+async function clearWarning() {
+  if (warnWindowId != null) {
+    try { await chrome.windows.remove(warnWindowId); } catch {}
+    warnWindowId = null;
+  }
+}
+
+chrome.windows.onRemoved.addListener((id) => {
+  if (id === warnWindowId) warnWindowId = null;
+});
+
+// ---- 세션 제어 ----
+async function startSession(goalMin) {
+  const p = await probe();
+  const present = p.focused && p.kind !== "distract";
+  const s = fresh();
+  s.active = true;
+  s.present = present;
+  s.startedAt = Date.now();
+  s.lastTick = Date.now();
+  s.goalMin = goalMin || 25;
+  s.activeHost = p.focused ? p.host : "";
+  s.activeKind = p.kind;
+  await set({ [SESSION_KEY]: s, [DOMAIN_KEY]: freshDomain() });
+  await broadcastClassification(p);
+  if (!present) await onLeave(p);
+}
+
+async function stopSession() {
+  const p = await probe();
+  await accumulate(p.focused && p.kind !== "distract", p);
+  clearEscalation();
+  clearWarning();
+  await set({ [SESSION_KEY]: fresh(), [ASK_KEY]: null });
+}
+
+// 중립 도메인 답변 → allow/blocklist 반영, 다시 평가
+async function answerClassification(host, answer) {
+  if (!host) return;
+  const settings = await loadSettings();
+  const h = hostOf(host.includes("://") ? host : "https://" + host) || host;
+  if (answer === "work") {
+    settings.blocklist = settings.blocklist.filter((d) => d !== h);
+    if (!settings.allowlist.includes(h)) settings.allowlist.push(h);
+  } else if (answer === "distract") {
+    settings.allowlist = settings.allowlist.filter((d) => d !== h);
+    if (!settings.blocklist.includes(h)) settings.blocklist.push(h);
+  }
+  if (!settings.askedHosts) settings.askedHosts = [];
+  if (!settings.askedHosts.includes(h)) settings.askedHosts.push(h);
+  await set({ [SETTINGS_KEY]: settings, [ASK_KEY]: null });
+  await evaluate();
+}
+
+// ---- 탭/창 이벤트 → 재평가 ----
+chrome.tabs.onActivated.addListener(() => evaluate());
+chrome.tabs.onUpdated.addListener((_, info) => info.url && evaluate());
+chrome.windows.onFocusChanged.addListener(() => evaluate());
+
+chrome.runtime.onMessage.addListener((msg, _sender, send) => {
+  if (msg && typeof msg.type === "string" && msg.type.startsWith("idle:")) return; // tab-usage 담당
+  (async () => {
+    switch (msg.type) {
+      case "start": await startSession(msg.goalMin); break;
+      case "stop": await stopSession(); break;
+      case "reset": await set({ [STATS_KEY]: freshStats(), [DOMAIN_KEY]: freshDomain() }); break;
+      case "tone": {
+        const st = await loadSettings();
+        st.tone = msg.tone;
+        await set({ [SETTINGS_KEY]: st });
+        break;
+      }
+      case "classify-answer": await answerClassification(msg.host, msg.answer); break;
+    }
+    await evaluate();
+    send({
+      session: await loadSession(),
+      stats: await loadStats(),
+      settings: await loadSettings(),
+      classification: await get(CLASSIFY_KEY, null),
+      domainStats: await loadDomain()
+    });
+  })();
+  return true; // 비동기 응답
+});
+
+chrome.runtime.onInstalled.addListener(async () => {
+  if (!(await get(SESSION_KEY, null))) await set({ [SESSION_KEY]: fresh() });
+});
+
+// 방치된 탭 추적 & 단계별 안내 모듈 시작
+initTabUsage();

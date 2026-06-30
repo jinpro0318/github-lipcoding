@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>탭talk 집중 경고</title>
+    <style>
+      * { margin: 0; box-sizing: border-box; font-family: "Pretendard", -apple-system, system-ui, sans-serif; }
+      body { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 14px; padding: 22px; text-align: center;
+        background: linear-gradient(160deg, #5aa0ff, #3182f6); color: #fff; }
+      .bell { font-size: 40px; }
+      .msg { font-size: 15px; font-weight: 700; line-height: 1.5; }
+      .host { font-size: 12px; opacity: .85; }
+      button { margin-top: 6px; border: 0; border-radius: 999px; cursor: pointer;
+        font-size: 13px; font-weight: 800; padding: 10px 22px; background: #fff; color: #1b64da; }
+    </style>
+  </head>
+  <body>
+    <div class="bell">🔔</div>
+    <p class="msg" id="msg">주인님, 잠시 집중에서 벗어나셨어요.</p>
+    <p class="host" id="host"></p>
+    <button id="ok">집중으로 돌아갈게요</button>
+    <script type="module" src="warn.js"></script>
+  </body>
+</html>

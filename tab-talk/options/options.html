@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="options.css" />
+    <title>탭talk 설정</title>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="opt-header">
+        <span class="brand-mark">🔔</span>
+        <h1>탭talk 설정</h1>
+      </header>
+      <p class="lead">
+        활성 탭 <strong>도메인</strong>만 보고 업무/딴짓을 분류해요. 전체 URL이나 페이지 내용은 다루지 않습니다.<br />
+        기본 목록에 더해, 아래에서 직접 도메인을 추가/삭제할 수 있어요.
+      </p>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>업무 도메인 <span class="muted">(allowlist)</span></h2>
+        </div>
+        <p class="hint">여기에 등록한 도메인은 머물러도 딴짓으로 세지 않아요. 예: <code>github.com</code></p>
+        <form class="add-row" data-list="allowlist">
+          <input type="text" class="add-input" placeholder="github.com" aria-label="업무 도메인 추가" />
+          <button type="submit" class="btn btn-primary">추가</button>
+        </form>
+        <ul class="chip-list" id="allowlist"></ul>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>딴짓 도메인 <span class="muted">(blocklist)</span></h2>
+        </div>
+        <p class="hint">여기에 등록한 도메인으로 이동하면 자리비움으로 감지해요. 예: <code>youtube.com</code></p>
+        <form class="add-row" data-list="blocklist">
+          <input type="text" class="add-input" placeholder="youtube.com" aria-label="딴짓 도메인 추가" />
+          <button type="submit" class="btn btn-primary">추가</button>
+        </form>
+        <ul class="chip-list" id="blocklist"></ul>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>잠든 탭 안내</h2></div>
+        <p class="hint">한동안 안 들른 탭을 1일·3일·7일·14일·30일 단계로, 이후엔 매주 새롭게 안내해요.</p>
+        <label class="switch-row">
+          <input type="checkbox" id="idleReminder" checked />
+          <span>방치된 탭 단계별 안내 사용</span>
+        </label>
+        <label class="switch-row">
+          <input type="checkbox" id="idleTestMode" />
+          <span>테스트 모드 <span class="muted">(단계 단위를 '일' 대신 '분'으로 — 빠르게 확인용)</span></span>
+        </label>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>딴짓 경고 방식</h2></div>
+        <p class="hint">집중 세션 중 딴짓 탭으로 이동하면 어떻게 알릴지 골라요. 전체 화면 가림은 쓰지 않아요.</p>
+        <div class="warn-styles" id="warnStyle">
+          <label class="warn-opt"><input type="radio" name="warnStyle" value="nudge" /><span><strong>코너 넛지</strong><small>현재 탭 구석에 살짝 (기본)</small></span></label>
+          <label class="warn-opt"><input type="radio" name="warnStyle" value="popup" /><span><strong>팝업창</strong><small>작은 경고 창을 띄움</small></span></label>
+          <label class="warn-opt"><input type="radio" name="warnStyle" value="sidepanel" /><span><strong>사이드패널</strong><small>브라우저 옆에 도킹</small></span></label>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>기본 분류 목록</h2></div>
+        <p class="hint">확장에 내장된 기본값이에요(편집 불가). 위 목록으로 덮어쓰거나 보탤 수 있어요.</p>
+        <div class="default-grid">
+          <div>
+            <h3 class="work">기본 업무</h3>
+            <ul class="chip-list readonly" id="defaultWork"></ul>
+          </div>
+          <div>
+            <h3 class="distract">기본 딴짓</h3>
+            <ul class="chip-list readonly" id="defaultDistract"></ul>
+          </div>
+        </div>
+      </section>
+
+      <div class="toast" id="toast" hidden></div>
+    </div>
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

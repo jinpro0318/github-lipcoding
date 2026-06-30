@@ -1,0 +1,20 @@
+/* 탭talk — 딴짓 탭 위에 떠오르는 집사 넛지 */
+.tabtalk-nudge { position: fixed; right: 18px; bottom: 18px; z-index: 2147483647;
+  display: flex; align-items: center; gap: 10px; max-width: 280px;
+  background: #fff; color: #191f28; border-radius: 16px; padding: 12px 14px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.18); font-family: "Pretendard", -apple-system, system-ui, sans-serif;
+  transform: translateY(120%); transition: transform .35s ease; }
+.tabtalk-nudge.show { transform: translateY(0); }
+.tabtalk-nudge .bell { font-size: 22px; }
+.tabtalk-nudge .msg { font-size: 13px; font-weight: 600; line-height: 1.4; }
+.tabtalk-nudge .close { margin-left: auto; border: 0; background: #f2f4f6; border-radius: 999px;
+  width: 22px; height: 22px; cursor: pointer; font-size: 13px; }
+
+/* 중립 도메인 물어보기 넛지 */
+.tabtalk-ask { max-width: 340px; flex-wrap: wrap; }
+.tabtalk-ask .msg { flex: 1 1 100%; }
+.tabtalk-ask .ask-yes, .tabtalk-ask .ask-no { border: 0; border-radius: 999px; cursor: pointer;
+  font-size: 12px; font-weight: 700; padding: 6px 12px; font-family: inherit; }
+.tabtalk-ask .ask-yes { background: #e7f0ff; color: #1b64da; }
+.tabtalk-ask .ask-no { background: #ffeaea; color: #d6293e; }
+.tabtalk-ask .close { margin-left: 0; }

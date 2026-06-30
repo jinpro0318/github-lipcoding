@@ -652,6 +652,7 @@ function startSession() {
 
   updatePip();
   sendEvent({ type: "start" });
+  if (extConnected) postToExt({ type: "start", goalMin: goalMin() });
 }
 
 function stopSession() {
@@ -695,6 +696,7 @@ function stopSession() {
   el("startBtn").disabled = false;
   el("stopBtn").disabled = true;
   apiPost(API.event, { type: "stop" });
+  if (extConnected) postToExt({ type: "stop" });
 }
 
 function clearEscalations() {
@@ -1254,15 +1256,97 @@ async function loadCoaching() {
   el("coachAdvice").textContent = advice;
 }
 
+// ---- 확장(센서) 브리지 연동 ----
+// 확장이 있으면 '활성 탭 도메인'으로 업무/딴짓을 판별해 present를 구동한다.
+// 확장이 없으면 아래 Page Visibility 폴백이 그대로 동작한다.
+let extConnected = false;
+let extPresent = true;
+let extClassification = null;
+const CAT_ICON = { work: "💼", video: "🎬", shopping: "🛍️", sns: "📸", community: "🔄", game: "🎮", news_portal: "📰", webtoon: "📖", neutral: "🌐", etc: "🌐" };
+
+function setExtBadge() {
+  const b = el("extBadge");
+  if (!b) return;
+  b.dataset.on = extConnected ? "true" : "false";
+  b.textContent = extConnected ? "확장 연결됨" : "확장 미연결";
+}
+
+function postToExt(payload) {
+  window.postMessage({ source: "tabtalk-page", type: payload.type, payload }, window.location.origin);
+}
+
+// 확장이 보낸 분류/통계를 반영
+function applyExtState(payload) {
+  if (payload.classification) {
+    extClassification = payload.classification;
+    extPresent = !!payload.classification.focused && payload.classification.kind !== "distract";
+    if (sessionActive) {
+      if (extPresent && !present) onReturn();
+      else if (!extPresent && present) onLeave();
+    }
+  }
+  if (payload.domainStats) renderDomainCard(payload.domainStats);
+}
+
+// 오늘 사이트별 시간 카드 (확장 데이터 기반)
+function renderDomainCard(d) {
+  const card = el("domainCard");
+  if (!card) return;
+  card.hidden = false;
+  const hosts = (d && d.hosts) || {};
+  const rows = Object.entries(hosts)
+    .map(([host, r]) => ({ host, ms: r.ms || 0, category: r.category || "etc" }))
+    .filter((r) => r.ms >= 1000)
+    .sort((a, b) => b.ms - a.ms)
+    .slice(0, 6);
+  const total = Object.values(hosts).reduce((s, r) => s + (r.ms || 0), 0);
+  el("domainTotal").textContent = `${Math.round(total / 60000)}분`;
+  el("domainEmpty").hidden = rows.length > 0;
+  const ul = el("domainList");
+  ul.innerHTML = "";
+  const max = rows.length ? rows[0].ms : 1;
+  rows.forEach((r) => {
+    const li = document.createElement("li");
+    li.className = "domain-item";
+    const min = Math.max(1, Math.round(r.ms / 60000));
+    li.innerHTML =
+      `<span class="domain-ico">${CAT_ICON[r.category] || "🌐"}</span>` +
+      `<div class="domain-main"><span class="domain-host">${r.host}</span>` +
+      `<div class="domain-track"><div class="domain-fill" style="width:${Math.round((r.ms / max) * 100)}%"></div></div></div>` +
+      `<span class="domain-min">${min}분</span>`;
+    ul.appendChild(li);
+  });
+}
+
+window.addEventListener("message", (e) => {
+  if (e.source !== window) return;
+  const m = e.data;
+  if (!m || m.source !== "tabtalk-ext") return;
+  if (m.type === "hello") {
+    extConnected = true;
+    setExtBadge();
+    postToExt({ type: "ext-sync" });
+  } else if (m.type === "state") {
+    extConnected = true;
+    setExtBadge();
+    applyExtState(m.payload || {});
+  }
+});
+// 로드 직후 확장에 현재 상태 요청 (hello를 놓쳤을 경우 대비)
+window.postMessage({ source: "tabtalk-page", type: "ext-sync" }, window.location.origin);
+
 // ---- 이벤트 바인딩 ----
 document.addEventListener("visibilitychange", () => {
+  if (extConnected) return; // 확장이 분류를 구동하면 탭 가시성으로 판단하지 않음
   if (document.hidden) onLeave();
   else onReturn();
 });
 window.addEventListener("blur", () => {
+  if (extConnected) return;
   if (document.hidden) onLeave();
 });
 window.addEventListener("focus", () => {
+  if (extConnected) return;
   if (!document.hidden) onReturn();
 });
 
@@ -1319,6 +1403,7 @@ document.querySelectorAll(".goal-chip").forEach((btn) => {
 });
 async function init() {
   if (window.lucide) window.lucide.createIcons();
+  setExtBadge();
 
   document.querySelectorAll(".tone-chip").forEach((b) => {
     b.classList.toggle("is-active", b.dataset.tone === tone);

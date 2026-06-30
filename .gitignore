@@ -10,6 +10,9 @@ tab-talk-web/server/data/
 # 임시 검증 스캐폴드
 tab-talk-web/.verify/
 
+# az webapp up 로컬 배포 설정
+**/.azure/
+
 # OS / 에디터
 .DS_Store
 *.log

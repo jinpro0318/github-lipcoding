@@ -21,7 +21,10 @@
           <span class="brand-mark"><i data-lucide="concierge-bell"></i></span>
           <h1>탭talk</h1>
         </div>
-        <button class="ghost-pill" id="resetBtn">오늘 초기화</button>
+        <div class="header-actions">
+          <span class="ext-badge" id="extBadge" data-on="false">확장 미연결</span>
+          <button class="ghost-pill" id="resetBtn">오늘 초기화</button>
+        </div>
       </header>
 
       <main class="layout">
@@ -171,6 +174,16 @@
         </div>
         <p class="progress-caption" id="focusCaption">아직 기록이 없어요. 첫 세션을 시작해볼까요?</p>
         <button class="share-btn" id="shareBtn" hidden><i data-lucide="image-down"></i> 내 집중 구조 공유</button>
+      </section>
+
+      <!-- 사이트별 시간 (확장 연결 시) -->
+      <section class="card domain-card" id="domainCard" hidden>
+        <div class="card-head">
+          <h2>오늘 사이트별 시간</h2>
+          <span class="title-badge" id="domainTotal">0분</span>
+        </div>
+        <ul class="domain-list" id="domainList"></ul>
+        <p class="progress-caption" id="domainEmpty">세션을 시작하면 사이트별 체류 시간을 모아 보여드려요.</p>
       </section>
 
       <!-- AI 코치 -->

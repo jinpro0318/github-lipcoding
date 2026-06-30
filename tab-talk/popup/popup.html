@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="../css/popup.css" />
+    <title>탭talk</title>
+  </head>
+  <body>
+    <div class="app">
+      <header class="app-header">
+        <div class="header-brand">
+          <span class="brand-mark">🔔</span>
+          <h1>탭talk</h1>
+        </div>
+        <div class="header-actions">
+          <button class="ghost-pill" id="resetBtn">오늘 초기화</button>
+          <button class="icon-pill" id="optionsBtn" title="설정">⚙️</button>
+        </div>
+      </header>
+      <section class="hero-card" id="heroCard">
+        <span class="hero-status-chip" id="statusChip">대기 중</span>
+        <div class="hero-ring" id="heroRing">
+          <div class="mascot" id="mascot">
+            <span class="spark spark-1"></span>
+            <span class="spark spark-2"></span>
+            <span class="spark spark-3"></span>
+            <span class="spark spark-4"></span>
+          </div>
+        </div>
+        <div class="hero-timer" id="statusTimer">00:00</div>
+        <div class="session-progress" id="sessionProgress" hidden>
+          <div class="session-track"><div class="session-fill" id="sessionFill"></div></div>
+          <span class="session-cap" id="sessionCap">25분 목표까지 25분 남았어요</span>
+        </div>
+        <div class="goal-row" id="goalRow">
+          <span class="goal-label">집중 목표</span>
+          <div class="goal-chips">
+            <button class="goal-chip" data-goal="15">15분</button>
+            <button class="goal-chip is-active" data-goal="25">25분</button>
+            <button class="goal-chip" data-goal="45">45분</button>
+            <button class="goal-chip" data-goal="60">60분</button>
+          </div>
+        </div>
+        <p class="hero-message" id="heroMessage">주인님, 환영합니다.</p>
+        <div class="hero-actions">
+          <button class="btn btn-primary" id="startBtn">집중 시작하기</button>
+          <button class="btn btn-soft" id="stopBtn" disabled>세션 종료</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>오늘의 집중</h2><span class="title-badge" id="titleBadge">집중 새내기</span></div>
+        <div class="summary-row">
+          <div class="summary-item"><span class="summary-num" id="statFocus">0<small>분</small></span><span class="summary-label">몰입</span></div>
+          <div class="summary-divider"></div>
+          <div class="summary-item"><span class="summary-num orange" id="statDistract">0<small>분</small></span><span class="summary-label">딴짓</span></div>
+          <div class="summary-divider"></div>
+          <div class="summary-item"><span class="summary-num blue" id="statReturn">100<small>%</small></span><span class="summary-label">복귀율</span></div>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="focusBar"></div></div>
+        <p class="progress-caption" id="focusCaption">아직 기록이 없어요. 첫 세션을 시작해볼까요?</p>
+      </section>
+
+      <section class="card domain-card">
+        <div class="card-head"><h2>오늘 사이트별 시간</h2><span class="title-badge" id="domainTotal">0분</span></div>
+        <ul class="domain-list" id="domainList"></ul>
+        <p class="progress-caption" id="domainEmpty">세션을 시작하면 사이트별 체류 시간을 모아 보여드려요.</p>
+      </section>
+
+      <section class="card coach-card">
+        <div class="card-head"><h2>AI 집중 코치</h2><button class="ghost-pill" id="coachBtn">코칭 받기</button></div>
+        <p class="coach-headline" id="coachHeadline">버튼을 누르면 오늘 집중을 분석해 드려요.</p>
+        <p class="coach-advice" id="coachAdvice"></p>
+      </section>
+
+      <section class="card sleeping-card">
+        <div class="card-head">
+          <h2>잠든 탭</h2>
+          <span class="title-badge" id="sleepCount">0개</span>
+        </div>
+        <p class="progress-caption" id="sleepEmpty">한동안 안 들른 탭이 여기에 모여요. 모두 잘 챙기고 계세요!</p>
+        <ul class="sleep-list" id="sleepList"></ul>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>응대 스타일</h2></div>
+        <div class="tone-row">
+          <button class="tone-chip is-active" data-tone="concierge">🔔 정중</button>
+          <button class="tone-chip" data-tone="secretary">☕ 다정</button>
+          <button class="tone-chip" data-tone="coach">🤓 차분</button>
+          <button class="tone-chip" data-tone="manager">🔥 열정</button>
+        </div>
+      </section>
+    </div>
+    <div class="toast" id="toast" hidden></div>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>
