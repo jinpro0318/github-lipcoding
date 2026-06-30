@@ -18,6 +18,9 @@ function fmtClock(ms) {
   const t = Math.max(0, Math.floor(ms / 1000));
   return `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
 }
+function elapsedSince(ts) {
+  return Number.isFinite(ts) && ts > 0 ? Date.now() - ts : 0;
+}
 
 function send(type, extra) {
   return new Promise((res) => {
@@ -136,7 +139,7 @@ function render() {
     checkMilestone(mins);
   } else {
     el("statusChip").textContent = "자리 비움";
-    el("statusTimer").textContent = fmtClock(Date.now() - session.awaySince);
+    el("statusTimer").textContent = fmtClock(elapsedSince(session.awaySince));
     el("heroMessage").textContent = t.helpers[session.activeHelper] || t.helpers.concierge;
   }
 }
