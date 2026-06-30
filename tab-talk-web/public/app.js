@@ -1336,6 +1336,29 @@ function siteName(domain) {
   return parts.length >= 2 ? parts[parts.length - 2] : parts[0];
 }
 
+function titleName(title) {
+  const cleaned = String(title || "")
+    .split(/[|\-–—·:]/)[0]
+    .replace(/\s+/g, " ")
+    .trim();
+  return cleaned.length > 2 ? cleaned.slice(0, 18) : "";
+}
+
+function displayTabName(tab) {
+  const domain = String((tab && tab.domain) || "").toLowerCase().replace(/^www\./, "");
+  const name = siteName(domain);
+  if (name && name !== "go" && name.length > 2) return name;
+  const fromTitle = titleName(tab && tab.title);
+  if (fromTitle) return fromTitle;
+  if (domain.includes(".")) return domain;
+  return "탭";
+}
+
+function displayDomainLabel(tab) {
+  const domain = String((tab && tab.domain) || "").toLowerCase().replace(/^www\./, "");
+  return domain && domain !== "go" && domain.length > 2 ? domain : displayTabName(tab);
+}
+
 function guidanceTabs(tabs) {
   return [...tabs]
     .filter((it) => !it.active && (it.discarded || it.heavy || (it.level || 0) >= 2))
@@ -1344,19 +1367,19 @@ function guidanceTabs(tabs) {
 }
 
 function tabGuidanceCopy(candidates, liveTabs) {
-  const names = candidates.map((it) => siteName(it.domain));
+  const names = candidates.map(displayTabName);
   const first = names[0];
   if (!first) {
     if (tone === "secretary") return `열린 탭 ${liveTabs}개는 아직 괜찮아 보여요. 집중할 때는 새 탭만 조금 조심해봐요.`;
-    if (tone === "coach") return `열린 탭 ${liveTabs}개. 현재 장기 미사용 후보는 뚜렷하지 않습니다. 목표와 관련된 탭만 유지하세요.`;
+    if (tone === "coach") return `열린 탭 ${liveTabs}개. 현재 장기 미사용 탭은 뚜렷하지 않습니다. 목표와 관련된 탭만 유지하세요.`;
     if (tone === "manager") return `열린 탭 ${liveTabs}개! 지금은 괜찮아요. 집중할 때 새 탭만 막아봅시다!`;
-    return `열린 탭 ${liveTabs}개입니다. 지금은 집중 흐름을 크게 방해하는 후보가 보이지 않습니다.`;
+    return `열린 탭 ${liveTabs}개입니다. 지금은 집중 흐름을 크게 방해할 만한 장기 탭이 보이지 않습니다.`;
   }
   const rest = names.length > 1 ? ` 외 ${names.length - 1}개` : "";
   if (tone === "secretary") return `${first}${rest} 탭이 오래 쉬고 있어요. 지금 할 일과 상관없다면 잠시 의식만 해두셔도 좋아요.`;
   if (tone === "coach") return `${first}${rest} 탭이 장시간 사용되지 않았습니다. 현재 세션과 관련 없는지 확인하세요.`;
   if (tone === "manager") return `${first}${rest} 오래 켜져 있어요! 지금 집중할 거면 시야 밖으로 치워두고 갑시다!`;
-  return `${first}${rest} 탭이 오래 머물러 있습니다. 주인님의 집중 흐름을 위해 잠시 정돈 후보로 기억해 두겠습니다.`;
+  return `${first}${rest} 탭이 오래 머물러 있습니다. 주인님의 집중 흐름을 위해 조용히 살펴보겠습니다.`;
 }
 
 function stableIndex(seed, length) {
@@ -1366,7 +1389,7 @@ function stableIndex(seed, length) {
 }
 
 function tabButlerLine(tab) {
-  const name = siteName(tab.domain);
+  const name = displayTabName(tab);
   const old = tab.discarded || tab.heavy || (tab.level || 0) >= 2;
   const seed = `${tab.tabId || ""}:${tab.domain || ""}:${tab.openLabel || ""}:${tone}`;
   const copies = {
@@ -1394,7 +1417,7 @@ function tabButlerLine(tab) {
       ? [
         `${name} 탭 장기 유지 중. 현재 목표와 무관하다면 메모리 관리를 위해 잠시 종료를 권장합니다.`,
         `${name} 탭이 오래 사용되지 않았습니다. 집중 세션 관련성을 확인하세요.`,
-        `${name} 탭은 주의 분산 후보입니다. 지금 필요한 탭인지 판단하세요.`
+        `${name} 탭은 주의 분산 가능성이 있습니다. 지금 필요한 탭인지 판단하세요.`
       ]
       : [
         `${name} 탭은 현재 부담 낮음.`,
@@ -1446,7 +1469,7 @@ function renderTabHealthCard(ov) {
   guideSites.innerHTML = "";
   (candidates.length ? candidates : tabs.filter((it) => !it.active).slice(0, 3)).forEach((it) => {
     const chip = document.createElement("span");
-    chip.textContent = siteName(it.domain);
+    chip.textContent = displayTabName(it);
     guideSites.appendChild(chip);
   });
 
@@ -1462,12 +1485,12 @@ function renderTabHealthCard(ov) {
       ? `<img class="sleep-fav" src="${it.favIconUrl}" alt="" />`
       : `<span class="sleep-fav ph"><i data-lucide="panel-top"></i></span>`;
     const status = it.active ? "보는 중" : it.discarded ? "잠듦" : it.heavy ? "오래 켜둠" : "";
-    const name = siteName(it.domain);
     const line = tabButlerLine(it);
+    const domainLabel = displayDomainLabel(it);
     li.innerHTML =
       fav +
       `<div class="sleep-main"><p class="sleep-msg" title="${line}">${line}</p>` +
-      `<span class="sleep-meta">${it.domain} · ${it.openLabel}${it.active ? "" : ` · ${it.idleLabel}`}${status ? ` · ${status}` : ""}</span></div>` +
+      `<span class="sleep-meta">${domainLabel} · ${it.openLabel}${it.active ? "" : ` · ${it.idleLabel}`}${status ? ` · ${status}` : ""}</span></div>` +
       `<div class="sleep-actions"><button class="sleep-open" title="이 탭 열기">열기</button>` +
       `${it.active ? "" : `<button class="sleep-close" title="이 탭 닫기">닫기</button>`}</div>`;
     li.querySelector(".sleep-open").onclick = () => postToExt({ type: "idle:focus", tabId: it.tabId });
@@ -1484,15 +1507,15 @@ function tabHealthCaption(ov, load) {
     const used = fmtGB(ov.memory.capacity - ov.memory.available);
     const total = fmtGB(ov.memory.capacity);
     if (tone === "secretary") return `시스템 메모리 ${used}/${total}GB 사용 중이에요. 지금은 집중에 필요한 탭만 남기는 느낌으로 살펴봐요.`;
-    if (tone === "coach") return `시스템 메모리 ${used}/${total}GB 사용 중. 세션과 무관한 장기 탭만 후보로 확인하세요.`;
+    if (tone === "coach") return `시스템 메모리 ${used}/${total}GB 사용 중. 세션과 무관한 장기 탭만 확인하세요.`;
     if (tone === "manager") return `메모리 ${used}/${total}GB 사용 중! 지금 집중할 탭만 딱 보고 갑시다!`;
-    return `시스템 메모리 ${used}/${total}GB 사용 중입니다. 집중에 덜 필요한 탭만 조용히 후보로 보겠습니다.`;
+    return `시스템 메모리 ${used}/${total}GB 사용 중입니다. 집중에 덜 필요한 탭만 조용히 살펴보겠습니다.`;
   }
   if (!current) {
     if (tone === "secretary") return "열린 탭을 살펴보고 있어요. 오래 안 본 탭이 있으면 조용히 알려드릴게요.";
-    if (tone === "coach") return "열린 탭 상태를 점검 중입니다. 장기 미사용 후보만 안내합니다.";
-    if (tone === "manager") return "열린 탭 점검 중! 집중 방해 후보만 빠르게 잡아볼게요!";
-    return "열린 탭 상태를 확인하고 있습니다. 집중 흐름에 방해될 후보만 살펴보겠습니다.";
+    if (tone === "coach") return "열린 탭 상태를 점검 중입니다. 장기 미사용 탭만 안내합니다.";
+    if (tone === "manager") return "열린 탭 점검 중! 오래 머문 탭만 빠르게 잡아볼게요!";
+    return "열린 탭 상태를 확인하고 있습니다. 집중 흐름에 방해될 만한 장기 탭만 살펴보겠습니다.";
   }
   if (current.heavy) {
     if (tone === "secretary") return `지금 보는 ${current.domain} 탭이 ${current.openLabel} 열려 있어요. 세션에 필요한 탭인지 살짝만 확인해봐요.`;
@@ -1509,27 +1532,27 @@ function tabHealthCaption(ov, load) {
 function tabHealthSummary(load, liveTabs, candidates) {
   const level = load.level || "light";
   const candidateCount = candidates.length;
-  const note = candidateCount > 0 ? ` 집중 방해 후보 ${candidateCount}개를 골라뒀습니다.` : "";
+  const note = candidateCount > 0 ? ` 오래 머문 탭 ${candidateCount}개를 확인했습니다.` : "";
   const copy = {
     concierge: {
-      light: ["집중 흐름이 가볍습니다", `열린 탭 ${liveTabs}개입니다. 지금은 크게 방해되는 후보가 적습니다.${note}`],
-      medium: ["후보를 살펴두었습니다", `열린 탭 ${liveTabs}개 중 오래 머문 탭을 조용히 골라두었습니다.${note}`],
-      heavy: ["집중 후보 확인이 필요합니다", `탭 ${liveTabs}개가 열려 있습니다. 세션과 먼 탭만 차분히 안내하겠습니다.${note}`]
+      light: ["집중 흐름이 가볍습니다", `열린 탭 ${liveTabs}개입니다. 지금은 크게 방해될 만한 장기 탭이 적습니다.${note}`],
+      medium: ["오래 열린 탭을 살펴봤습니다", `열린 탭 ${liveTabs}개 중 오래 머문 탭을 조용히 확인했습니다.${note}`],
+      heavy: ["오래 머문 탭이 있습니다", `탭 ${liveTabs}개가 열려 있습니다. 세션과 먼 탭만 차분히 안내하겠습니다.${note}`]
     },
     secretary: {
       light: ["아직 괜찮아요", `열린 탭 ${liveTabs}개예요. 집중을 방해할 만한 탭은 크지 않아 보여요.${note}`],
-      medium: ["살짝 신경 쓸 후보가 있어요", `오래 쉬고 있는 탭이 보여요. 지금 할 일과 상관있는지만 가볍게 봐요.${note}`],
+      medium: ["오래 쉰 탭이 있어요", `오래 쉬고 있는 탭이 보여요. 지금 할 일과 상관있는지만 가볍게 봐요.${note}`],
       heavy: ["집중이 흐트러질 수 있어요", `탭 ${liveTabs}개가 열려 있어요. 오래 안 본 탭만 제가 조용히 알려드릴게요.${note}`]
     },
     coach: {
-      light: ["방해 낮음", `열린 탭 ${liveTabs}개. 현재 장기 미사용 후보는 낮습니다.${note}`],
-      medium: ["후보 확인", `열린 탭 ${liveTabs}개. 세션과 관련 없는 장기 탭을 확인하세요.${note}`],
-      heavy: ["집중 위험 후보", `탭 ${liveTabs}개. 오래 유지된 탭이 주의 분산 요인이 될 수 있습니다.${note}`]
+      light: ["방해 낮음", `열린 탭 ${liveTabs}개. 현재 장기 미사용 탭은 적습니다.${note}`],
+      medium: ["장기 탭 확인", `열린 탭 ${liveTabs}개. 세션과 관련 없는 장기 탭을 확인하세요.${note}`],
+      heavy: ["주의 분산 가능", `탭 ${liveTabs}개. 오래 유지된 탭이 주의 분산 요인이 될 수 있습니다.${note}`]
     },
     manager: {
-      light: ["집중 준비 좋습니다", `열린 탭 ${liveTabs}개! 지금은 크게 막는 후보가 없어요.${note}`],
-      medium: ["후보 잡았습니다", `열린 탭 ${liveTabs}개! 오래 켜둔 탭만 빠르게 체크하고 집중 갑시다.${note}`],
-      heavy: ["주의 분산 후보 있음", `탭 ${liveTabs}개! 지금 목표랑 먼 탭이 있으면 시야 밖으로 밀어봅시다.${note}`]
+      light: ["집중 준비 좋습니다", `열린 탭 ${liveTabs}개! 지금은 크게 막는 장기 탭이 없어요.${note}`],
+      medium: ["오래 열린 탭 체크", `열린 탭 ${liveTabs}개! 오래 켜둔 탭만 빠르게 체크하고 집중 갑시다.${note}`],
+      heavy: ["주의 분산 가능", `탭 ${liveTabs}개! 지금 목표랑 먼 탭이 있으면 시야 밖으로 밀어봅시다.${note}`]
     }
   };
   const picked = (copy[tone] || copy.concierge)[level] || copy.concierge.light;

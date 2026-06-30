@@ -93,10 +93,18 @@ async function probe() {
     const url = tab && tab.url ? tab.url : "";
     const settings = await loadSettings();
     const kind = url ? classify(url, settings) : "neutral";
-    return { focused, host: hostOf(url), kind, url };
+    return { focused, host: hostOf(url), kind, url, tabId: tab && tab.id };
   } catch {
-    return { focused: true, host: "", kind: "neutral", url: "" };
+    return { focused: true, host: "", kind: "neutral", url: "", tabId: null };
   }
+}
+
+async function ensureNudgeScript(p) {
+  if (!p || !p.focused || !p.tabId || !/^https?:\/\//.test(p.url || "")) return;
+  try {
+    await chrome.scripting.insertCSS({ target: { tabId: p.tabId }, files: ["css/content.css"] });
+    await chrome.scripting.executeScript({ target: { tabId: p.tabId }, files: ["content/content.js"] });
+  } catch {}
 }
 
 // 분류 상태를 storage에 반영 (브리지가 웹앱으로 자동 전파)
@@ -200,6 +208,7 @@ async function evaluate() {
   const settings = await loadSettings();
   const s = await loadSession();
   await updateAsk(p, settings, s.active);
+  if (s.active) await ensureNudgeScript(p);
   if (!s.active) return;
 
   // '업무중'은 업무로 등록된 사이트(기본 업무 목록 + 사용자가 허용한 도메인)에서만 인정한다.
@@ -372,7 +381,8 @@ chrome.runtime.onMessage.addListener((msg, _sender, send) => {
         stats: await loadStats(),
         settings: await loadSettings(),
         classification: await get(CLASSIFY_KEY, null),
-        domainStats: await loadDomain()
+        domainStats: await loadDomain(),
+        ask: await get(ASK_KEY, null)
       });
     } catch (err) {
       send({
@@ -381,7 +391,8 @@ chrome.runtime.onMessage.addListener((msg, _sender, send) => {
         stats: freshStats(),
         settings: await loadSettings().catch(() => ({ tone: "concierge" })),
         classification: await get(CLASSIFY_KEY, null).catch(() => null),
-        domainStats: freshDomain()
+        domainStats: freshDomain(),
+        ask: await get(ASK_KEY, null).catch(() => null)
       });
     }
   })();

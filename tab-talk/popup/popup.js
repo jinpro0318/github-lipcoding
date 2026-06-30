@@ -100,6 +100,7 @@ function render() {
   if (!state) return;
   const { session, stats } = state;
   const t = TONE[tone] || TONE.concierge;
+  const ask = state.ask;
 
   // 오늘 요약
   el("statFocus").innerHTML = fmtMin(stats.focusMs);
@@ -115,6 +116,7 @@ function render() {
 
   // 세션 상태
   el("startBtn").disabled = session.active;
+  el("startBtn").textContent = session.active ? "집중 중" : "집중 시작하기";
   el("stopBtn").disabled = !session.active;
   el("sessionProgress").hidden = !session.active;
   el("heroCard").classList.toggle("is-focus", session.active && session.present);
@@ -125,6 +127,11 @@ function render() {
     el("heroMessage").textContent = t.idle;
     lastMilestone = 0;
     applyMascotGrowth(0, false);
+  } else if (ask && ask.host) {
+    el("statusChip").textContent = "확인 필요";
+    el("statusTimer").textContent = fmtClock(session.focusMs);
+    el("heroMessage").textContent = `'${ask.host}' 사이트가 업무인지 딴짓인지 우측 하단 안내에서 선택해 주세요.`;
+    clearEscalationVisuals();
   } else if (session.present) {
     el("statusChip").textContent = "몰입 중";
     el("statusTimer").textContent = fmtClock(session.focusMs);
@@ -141,6 +148,11 @@ function render() {
     el("statusTimer").textContent = fmtClock(elapsedSince(session.awaySince));
     el("heroMessage").textContent = t.helpers[session.activeHelper] || t.helpers.concierge;
   }
+}
+
+function clearEscalationVisuals() {
+  el("heroCard").classList.remove("is-distract");
+  el("heroCard").classList.add("is-focus");
 }
 
 async function refresh() {
@@ -209,6 +221,26 @@ function siteName(domain) {
   if (parts.length >= 3 && ["co", "com", "net", "or"].includes(parts[parts.length - 2])) return parts[parts.length - 3];
   return parts.length >= 2 ? parts[parts.length - 2] : parts[0];
 }
+function titleName(title) {
+  const cleaned = String(title || "")
+    .split(/[|\-–—·:]/)[0]
+    .replace(/\s+/g, " ")
+    .trim();
+  return cleaned.length > 2 ? cleaned.slice(0, 18) : "";
+}
+function displayTabName(tab) {
+  const domain = String((tab && tab.domain) || "").toLowerCase().replace(/^www\./, "");
+  const name = siteName(domain);
+  if (name && name !== "go" && name.length > 2) return name;
+  const fromTitle = titleName(tab && tab.title);
+  if (fromTitle) return fromTitle;
+  if (domain.includes(".")) return domain;
+  return "탭";
+}
+function displayDomainLabel(tab) {
+  const domain = String((tab && tab.domain) || "").toLowerCase().replace(/^www\./, "");
+  return domain && domain !== "go" && domain.length > 2 ? domain : displayTabName(tab);
+}
 function guidanceTabs(tabs) {
   return [...tabs]
     .filter((it) => !it.active && (it.discarded || it.heavy || (it.level || 0) >= 2))
@@ -216,19 +248,19 @@ function guidanceTabs(tabs) {
     .slice(0, 3);
 }
 function guidanceCopy(candidates, liveTabs) {
-  const names = candidates.map((it) => siteName(it.domain));
+  const names = candidates.map(displayTabName);
   const first = names[0];
   if (!first) {
     if (tone === "secretary") return `지금 열린 탭 ${liveTabs}개는 아직 괜찮아 보여요. 집중 세션 중엔 새 탭만 조금 조심해봐요.`;
-    if (tone === "coach") return `열린 탭 ${liveTabs}개. 현재 오래 방치된 후보는 뚜렷하지 않습니다. 세션 목표에 필요한 탭만 유지하세요.`;
+    if (tone === "coach") return `열린 탭 ${liveTabs}개. 현재 오래 방치된 탭은 뚜렷하지 않습니다. 세션 목표에 필요한 탭만 유지하세요.`;
     if (tone === "manager") return `열린 탭 ${liveTabs}개! 지금은 괜찮아요. 집중할 때 새 탭만 막아봅시다!`;
-    return `열린 탭 ${liveTabs}개입니다. 지금은 집중 흐름을 크게 방해하는 후보가 보이지 않습니다.`;
+    return `열린 탭 ${liveTabs}개입니다. 지금은 집중 흐름을 크게 방해할 만한 장기 탭이 보이지 않습니다.`;
   }
   const rest = names.length > 1 ? ` 외 ${names.length - 1}개` : "";
   if (tone === "secretary") return `${first}${rest} 탭이 오래 쉬고 있어요. 지금 집중할 일과 상관없다면 잠시 의식만 해두셔도 좋아요.`;
   if (tone === "coach") return `${first}${rest} 탭이 장시간 사용되지 않았습니다. 현재 세션과 관련 없는지 확인하세요.`;
   if (tone === "manager") return `${first}${rest} 오래 켜져 있어요! 지금 집중할 거면 시야 밖으로 치워두고 갑시다!`;
-  return `${first}${rest} 탭이 오래 머물러 있습니다. 주인님의 집중 흐름을 위해 잠시 정돈 후보로 기억해 두겠습니다.`;
+  return `${first}${rest} 탭이 오래 머물러 있습니다. 주인님의 집중 흐름을 위해 조용히 살펴보겠습니다.`;
 }
 function stableIndex(seed, length) {
   let hash = 0;
@@ -236,7 +268,7 @@ function stableIndex(seed, length) {
   return hash % length;
 }
 function tabButlerLine(tab) {
-  const name = siteName(tab.domain);
+  const name = displayTabName(tab);
   const old = tab.discarded || tab.heavy || (tab.level || 0) >= 2;
   const seed = `${tab.tabId || ""}:${tab.domain || ""}:${tab.openLabel || ""}:${tone}`;
   const copies = {
@@ -264,7 +296,7 @@ function tabButlerLine(tab) {
       ? [
         `${name} 탭 장기 유지 중. 현재 목표와 무관하다면 메모리 관리를 위해 잠시 종료를 권장합니다.`,
         `${name} 탭이 오래 사용되지 않았습니다. 집중 세션 관련성을 확인하세요.`,
-        `${name} 탭은 주의 분산 후보입니다. 지금 필요한 탭인지 판단하세요.`
+        `${name} 탭은 주의 분산 가능성이 있습니다. 지금 필요한 탭인지 판단하세요.`
       ]
       : [
         `${name} 탭은 현재 부담 낮음.`,
@@ -303,11 +335,11 @@ async function renderTabs() {
   guideSites.innerHTML = "";
   (candidates.length ? candidates : tabs.filter((it) => !it.active).slice(0, 3)).forEach((it) => {
     const chip = document.createElement("span");
-    chip.textContent = siteName(it.domain);
+    chip.textContent = displayTabName(it);
     guideSites.appendChild(chip);
   });
   el("memBox").dataset.level = load.level;
-  el("memStatusTitle").textContent = candidates.length ? "집중 후보를 골라뒀어요" : "지금은 가볍게 집중해도 좋아요";
+  el("memStatusTitle").textContent = candidates.length ? "오래 열린 탭을 살펴봤어요" : "지금은 가볍게 집중해도 좋아요";
   el("memStatusMsg").textContent = guidanceCopy(candidates, liveTabs);
   el("memFill").style.width = `${load.pct}%`;
 
@@ -334,13 +366,13 @@ async function renderTabs() {
       ? `<img class="sleep-fav" src="${it.favIconUrl}" alt="" />`
       : `<span class="sleep-fav ph">🗂️</span>`;
     const status = it.active ? "보는 중" : it.discarded ? "잠듦" : it.heavy ? "오래 켜둠" : "";
-    const name = siteName(it.domain);
     const line = tabButlerLine(it);
+    const domainLabel = displayDomainLabel(it);
     li.innerHTML = `
       ${fav}
       <div class="sleep-main">
         <p class="sleep-msg" title="${line}">${line}</p>
-        <span class="sleep-meta">${it.domain} · ${it.openLabel}${it.active ? "" : ` · ${it.idleLabel}`}${status ? ` · ${status}` : ""}</span>
+        <span class="sleep-meta">${domainLabel} · ${it.openLabel}${it.active ? "" : ` · ${it.idleLabel}`}${status ? ` · ${status}` : ""}</span>
       </div>
       <div class="sleep-actions">
         <button class="sleep-open" title="이 탭 열기">열기</button>
@@ -359,9 +391,9 @@ function popupTabCaption(ov, load) {
     const used = fmtGB(ov.memory.capacity - ov.memory.available);
     const total = fmtGB(ov.memory.capacity);
     if (tone === "secretary") return `메모리 ${used}/${total}GB 사용 중이에요. 지금은 집중에 필요한 탭만 남기는 느낌으로 가볍게 살펴봐요.`;
-    if (tone === "coach") return `메모리 ${used}/${total}GB 사용 중. 세션과 무관한 장기 탭만 후보로 확인하세요.`;
+    if (tone === "coach") return `메모리 ${used}/${total}GB 사용 중. 세션과 무관한 장기 탭만 확인하세요.`;
     if (tone === "manager") return `메모리 ${used}/${total}GB 사용 중! 지금 집중할 탭만 딱 보고 갑시다!`;
-    return `메모리 ${used}/${total}GB 사용 중입니다. 집중에 덜 필요한 탭만 조용히 후보로 보겠습니다.`;
+    return `메모리 ${used}/${total}GB 사용 중입니다. 집중에 덜 필요한 탭만 조용히 살펴보겠습니다.`;
   }
   if (!current) return "열린 탭을 집중 흐름 기준으로 살펴보고 있습니다.";
   if (current.heavy) {
@@ -388,8 +420,34 @@ function coach() {  const s = state && state.stats;
 }
 
 // 이벤트
-el("startBtn").onclick = async () => { state = await send("start", { goalMin }); render(); };
-el("stopBtn").onclick = async () => { state = await send("stop"); render(); toast("세션을 마쳤어요. 수고하셨어요!"); };
+async function handleStart() {
+  const start = el("startBtn");
+  start.disabled = true;
+  start.textContent = "시작 중...";
+  el("statusChip").textContent = "시작 준비 중";
+  const next = await send("start", { goalMin });
+  if (!next || next.error) {
+    toast(next && next.error ? `시작하지 못했어요: ${next.error}` : "집중 세션을 시작하지 못했어요. 확장을 다시 열어주세요.");
+    await refresh();
+    if (!state || !state.session || !state.session.active) {
+      start.disabled = false;
+      start.textContent = "집중 시작하기";
+      el("statusChip").textContent = "대기 중";
+    }
+    return;
+  }
+  state = next;
+  render();
+  renderTabs();
+}
+async function handleStop() {
+  state = await send("stop");
+  render();
+  renderTabs();
+  toast("세션을 마쳤어요. 수고하셨어요!");
+}
+el("startBtn").addEventListener("click", handleStart);
+el("stopBtn").addEventListener("click", handleStop);
 el("resetBtn").onclick = async () => { state = await send("reset"); render(); toast("오늘 기록을 초기화했어요"); };
 el("optionsBtn").onclick = () => chrome.runtime.openOptionsPage();
 el("coachBtn").onclick = coach;

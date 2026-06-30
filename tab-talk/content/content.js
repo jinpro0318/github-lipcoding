@@ -2,6 +2,9 @@
 // 세션/딴짓 여부는 백그라운드가 storage.local에 기록한 present 값으로 판단한다.
 // 멘트는 현재 사이트 종류(카테고리)와 선택된 집사 톤에 맞춰 매번 랜덤으로 고른다.
 (() => {
+  if (window.__tabtalkContentLoaded) return;
+  window.__tabtalkContentLoaded = true;
+
   let bar = null;
   let extensionAlive = true;
 

@@ -141,7 +141,7 @@ async function touch(tabId) {
 }
 
 // 팝업용: 열린 모든 탭 목록(미접속 시간·열어둔 시간·잠듦 상태 포함) — 알림은 보내지 않음
-const HEAVY_OPEN_MS = 2 * 3600000; // 2시간 이상 켜둔 탭은 "메모리 부담" 후보
+const HEAVY_OPEN_MS = 2 * 3600000; // 2시간 이상 켜둔 탭은 장기 탭으로 안내
 
 async function buildTabList() {
   const settings = await loadSettings();
