@@ -528,12 +528,9 @@ function setConn() {
 function renderStats() {
   el("statFocus").innerHTML = fmtMinNum(stats.focusMs);
   el("statDistract").innerHTML = fmtMinNum(stats.distractMs);
-  const rate =
-    stats.distractCount === 0 ? 100 : Math.round((stats.returnCount / stats.distractCount) * 100);
-  el("statReturn").innerHTML = `${rate}<small>%</small>`;
-
   const total = stats.focusMs + stats.distractMs;
   const ratio = total === 0 ? 1 : stats.focusMs / total;
+  el("statReturn").innerHTML = `${Math.round(ratio * 100)}<small>%</small>`;
   el("focusBar").style.width = `${Math.round(ratio * 100)}%`;
 
   const title = TITLES.find((x) => ratio >= x.min) || TITLES[TITLES.length - 1];
@@ -557,7 +554,7 @@ function renderStats() {
   el("focusCaption").textContent =
     total === 0
       ? "아직 기록이 없어요. 첫 세션을 시작해볼까요?"
-      : `오늘 몰입 비율 ${Math.round(ratio * 100)}% · 복귀 ${stats.returnCount}회${gazeNote}`;
+      : `오늘 집중 ${Math.round(ratio * 100)}% · 딴짓 ${Math.round((1 - ratio) * 100)}%${gazeNote}`;
 }
 
 // 오늘 날짜 키
@@ -1110,7 +1107,7 @@ async function shareSummaryCard() {
   const ratio = stats.focusMs / total;
   const brain = (BRAIN_STATES.find((x) => ratio >= x.min) || BRAIN_STATES[BRAIN_STATES.length - 1]).label;
   const title = (TITLES.find((x) => ratio >= x.min) || TITLES[TITLES.length - 1]).label;
-  const rate = stats.distractCount === 0 ? 100 : Math.round((stats.returnCount / stats.distractCount) * 100);
+  const focusPct = Math.round(ratio * 100);
   const focusMin = Math.round(stats.focusMs / 60000);
   const distractMin = Math.round(stats.distractMs / 60000);
 
@@ -1179,7 +1176,7 @@ async function shareSummaryCard() {
   const items = [
     ["몰입", `${focusMin}분`, "#191f28"],
     ["딴짓", `${distractMin}분`, "#ff8a3d"],
-    ["복귀율", `${rate}%`, "#3182f6"]
+    ["집중률", `${focusPct}%`, "#3182f6"]
   ];
   const colW = (W - 160) / 3;
   items.forEach((it, i) => {
@@ -1362,6 +1359,62 @@ function tabGuidanceCopy(candidates, liveTabs) {
   return `${first}${rest} 탭이 오래 머물러 있습니다. 주인님의 집중 흐름을 위해 잠시 정돈 후보로 기억해 두겠습니다.`;
 }
 
+function stableIndex(seed, length) {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i += 1) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+  return hash % length;
+}
+
+function tabButlerLine(tab) {
+  const name = siteName(tab.domain);
+  const old = tab.discarded || tab.heavy || (tab.level || 0) >= 2;
+  const seed = `${tab.tabId || ""}:${tab.domain || ""}:${tab.openLabel || ""}:${tone}`;
+  const copies = {
+    concierge: old
+      ? [
+        `주인님, ${name} 탭을 잊으신 건가요? 컴퓨터 메모리를 위해 잠시 쉬게 해두셔도 좋겠습니다.`,
+        `${name} 탭이 오래 기다리고 있습니다. 집중 모드를 위해 지금 필요한 탭인지 살펴보겠습니다.`,
+        `주인님, ${name} 탭이 조용히 남아 있습니다. 쓰지 않으신다면 메모리 여유를 위해 잠시 내려두셔도 좋습니다.`
+      ]
+      : [
+        `${name} 탭은 아직 가볍게 지켜보겠습니다.`,
+        `${name} 탭은 현재 집중 흐름 안에서 대기 중입니다.`
+      ],
+    secretary: old
+      ? [
+        `${name} 탭, 혹시 잊고 계셨나요? 지금 안 쓰면 컴퓨터가 편해지도록 잠깐 쉬게 해도 좋아요.`,
+        `${name}가 오래 열려 있어요. 집중 중이라면 나중에 다시 봐도 괜찮아요.`,
+        `${name} 탭이 기다리는 중이에요. 지금 할 일과 다르면 살짝 덮어둘까요?`
+      ]
+      : [
+        `${name} 탭은 아직 괜찮아 보여요.`,
+        `${name} 탭은 조용히 보고 있을게요.`
+      ],
+    coach: old
+      ? [
+        `${name} 탭 장기 유지 중. 현재 목표와 무관하다면 메모리 관리를 위해 잠시 종료를 권장합니다.`,
+        `${name} 탭이 오래 사용되지 않았습니다. 집중 세션 관련성을 확인하세요.`,
+        `${name} 탭은 주의 분산 후보입니다. 지금 필요한 탭인지 판단하세요.`
+      ]
+      : [
+        `${name} 탭은 현재 부담 낮음.`,
+        `${name} 탭은 관찰 중입니다.`
+      ],
+    manager: old
+      ? [
+        `${name} 탭, 저를 잊으신 건가요? 지금 안 쓰면 메모리 위해 잠깐 꺼두고 갑시다!`,
+        `${name} 오래 켜져 있어요! 집중 모드라면 시야 밖으로 치워봅시다!`,
+        `${name} 탭이 버티는 중! 지금 목표랑 다르면 과감히 쉬게 합시다!`
+      ]
+      : [
+        `${name} 탭은 아직 괜찮아요!`,
+        `${name} 탭은 대기, 집중은 계속 갑시다!`
+      ]
+  };
+  const picked = copies[tone] || copies.concierge;
+  return picked[stableIndex(seed, picked.length)];
+}
+
 function renderTabHealthCard(ov) {
   const card = el("tabHealthCard");
   if (!card) return;
@@ -1410,9 +1463,10 @@ function renderTabHealthCard(ov) {
       : `<span class="sleep-fav ph"><i data-lucide="panel-top"></i></span>`;
     const status = it.active ? "보는 중" : it.discarded ? "잠듦" : it.heavy ? "오래 켜둠" : "";
     const name = siteName(it.domain);
+    const line = tabButlerLine(it);
     li.innerHTML =
       fav +
-      `<div class="sleep-main"><p class="sleep-msg" title="${it.title || name}">${name}</p>` +
+      `<div class="sleep-main"><p class="sleep-msg" title="${line}">${line}</p>` +
       `<span class="sleep-meta">${it.domain} · ${it.openLabel}${it.active ? "" : ` · ${it.idleLabel}`}${status ? ` · ${status}` : ""}</span></div>` +
       `<div class="sleep-actions"><button class="sleep-open" title="이 탭 열기">열기</button>` +
       `${it.active ? "" : `<button class="sleep-close" title="이 탭 닫기">닫기</button>`}</div>`;
