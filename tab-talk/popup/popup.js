@@ -203,6 +203,13 @@ function renderDomains() {
 function fmtGB(bytes) {
   return (bytes / 1073741824).toFixed(1);
 }
+function siteName(domain) {
+  const host = String(domain || "").toLowerCase().replace(/^www\./, "");
+  const parts = host.split(".").filter(Boolean);
+  if (parts.length === 0) return "tab";
+  if (parts.length >= 3 && ["co", "com", "net", "or"].includes(parts[parts.length - 2])) return parts[parts.length - 3];
+  return parts.length >= 2 ? parts[parts.length - 2] : parts[0];
+}
 async function renderTabs() {
   const ov = (await send("idle:overview")) || { tabs: [], total: 0, discarded: 0, memory: null, load: null, current: null };
   const tabs = ov.tabs || [];
@@ -241,14 +248,13 @@ async function renderTabs() {
     const fav = it.favIconUrl
       ? `<img class="sleep-fav" src="${it.favIconUrl}" alt="" />`
       : `<span class="sleep-fav ph">🗂️</span>`;
-    const badge = it.active ? `<span class="tab-badge live">보는 중</span>`
-      : it.discarded ? `<span class="tab-badge sleep">잠듦</span>`
-      : it.heavy ? `<span class="tab-badge heavy">오래 켜둠</span>` : "";
+    const status = it.active ? "보는 중" : it.discarded ? "잠듦" : it.heavy ? "오래 켜둠" : "";
+    const name = siteName(it.domain);
     li.innerHTML = `
       ${fav}
       <div class="sleep-main">
-        <p class="sleep-msg">${it.title}${badge}</p>
-        <span class="sleep-meta">${it.domain} · ${it.openLabel}${it.active ? "" : ` · ${it.idleLabel}`}</span>
+        <p class="sleep-msg" title="${it.title || name}">${name}</p>
+        <span class="sleep-meta">${it.domain} · ${it.openLabel}${it.active ? "" : ` · ${it.idleLabel}`}${status ? ` · ${status}` : ""}</span>
       </div>
       <div class="sleep-actions">
         <button class="sleep-open" title="이 탭 열기">열기</button>
