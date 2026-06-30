@@ -214,7 +214,7 @@ async function renderTabs() {
   el("heavyTabCount").textContent = String(heavyTabs);
 
   // 부담 상태 배너 (색상으로 구분)
-  const load = ov.load || { level: "light", pct: 0, title: "쾌적해요 🟢", message: "", source: "tabs" };
+  const load = ov.load || { level: "light", pct: 0, title: "정돈되어 있습니다", message: "", source: "tabs" };
   el("memBox").dataset.level = load.level;
   el("memStatusTitle").textContent = load.title;
   el("memStatusMsg").textContent = load.message;
@@ -229,18 +229,9 @@ async function renderTabs() {
     el("memVal").textContent = `${load.pct}%`;
   }
 
-  // 현재 보고 있는 사이트 상태 (색상 강조)
-  if (ov.current) {
-    const c = ov.current;
-    el("memCaption").innerHTML = c.heavy
-      ? `지금 보는 <b>${c.domain}</b> 을(를) <b>${c.openLabel.replace("째 열림", "")}째</b> 열어두셨어요. 슬슬 정리하면 가벼워져요.`
-      : `지금 보는 <b>${c.domain}</b> 은(는) ${c.openLabel}. 아직 가벼워요.`;
-  } else {
-    el("memCaption").textContent = "오래 켜둔 탭은 컴퓨터를 느리게 만들 수 있어요.";
-  }
+  el("memCaption").textContent = popupTabCaption(ov, load);
 
-  const priorityTabs = tabs.filter((it) => it.active || it.heavy || it.discarded || it.level >= 2);
-  const visibleTabs = (priorityTabs.length ? priorityTabs : tabs).slice(0, 4);
+  const visibleTabs = tabs;
   el("sleepEmpty").hidden = tabs.length > 0;
   const ul = el("sleepList");
   ul.innerHTML = "";
@@ -268,12 +259,29 @@ async function renderTabs() {
     if (cl) cl.onclick = async () => { await send("idle:close", { tabId: it.tabId }); renderTabs(); toast("탭을 정리했어요"); };
     ul.appendChild(li);
   });
-  if (tabs.length > visibleTabs.length) {
-    const more = document.createElement("li");
-    more.className = "sleep-more";
-    more.textContent = `나머지 ${tabs.length - visibleTabs.length}개 탭은 가볍게 숨겼어요.`;
-    ul.appendChild(more);
+}
+
+function popupTabCaption(ov, load) {
+  const current = ov && ov.current;
+  if (load.source === "memory" && ov.memory && ov.memory.capacity) {
+    const used = fmtGB(ov.memory.capacity - ov.memory.available);
+    const total = fmtGB(ov.memory.capacity);
+    if (tone === "secretary") return `메모리 ${used}/${total}GB 사용 중이에요. 오래 켠 탭부터 같이 정리해봐요.`;
+    if (tone === "coach") return `메모리 ${used}/${total}GB 사용 중. 오래 열린 탭 정리를 권장합니다.`;
+    if (tone === "manager") return `메모리 ${used}/${total}GB 사용 중! 오래 켠 탭부터 정리 갑시다.`;
+    return `메모리 ${used}/${total}GB 사용 중입니다. 오래 켠 탭부터 정돈하시면 좋습니다.`;
   }
+  if (!current) return "열린 탭 상태를 확인하고 있습니다.";
+  if (current.heavy) {
+    if (tone === "secretary") return `지금 보는 ${current.domain} 탭이 ${current.openLabel} 열려 있어요. 필요 없으면 살짝 닫아볼까요?`;
+    if (tone === "coach") return `현재 ${current.domain} 탭이 ${current.openLabel} 유지 중입니다. 정리 대상입니다.`;
+    if (tone === "manager") return `${current.domain} 탭이 ${current.openLabel} 열려 있어요! 필요 없으면 바로 닫아봅시다.`;
+    return `지금 보시는 ${current.domain} 탭이 ${current.openLabel} 열려 있습니다. 필요 없으시면 정리해도 좋습니다.`;
+  }
+  if (tone === "secretary") return `지금 보는 ${current.domain} 탭은 ${current.openLabel}. 아직 가벼워요.`;
+  if (tone === "coach") return `현재 ${current.domain} 탭은 ${current.openLabel}. 부담은 낮은 상태입니다.`;
+  if (tone === "manager") return `${current.domain} 탭은 ${current.openLabel}! 아직 괜찮아요.`;
+  return `지금 보시는 ${current.domain} 탭은 ${current.openLabel}. 아직 가볍습니다.`;
 }
 
 // 코치 (규칙 기반)

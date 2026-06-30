@@ -124,22 +124,18 @@ body {
   height: 24px;
 }
 
-.tone-chip svg {
-  width: 15px;
-  height: 15px;
-  vertical-align: -2px;
+.tone-face {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
 }
-.tone-chip[data-tone="concierge"] svg {
-  color: #3182f6;
-}
-.tone-chip[data-tone="secretary"] svg {
-  color: #ff8a3d;
-}
-.tone-chip[data-tone="coach"] svg {
-  color: #8b5cf6;
-}
-.tone-chip[data-tone="manager"] svg {
-  color: #f04452;
+.tone-face .mascot-svg {
+  width: 34px;
+  height: 34px;
+  display: block;
 }
 
 /* 집중 브리핑 신뢰도 텍스트 */
@@ -789,23 +785,14 @@ body {
 .tab-health-card {
   background: linear-gradient(180deg, #ffffff, #f9fbfd);
 }
-.mem-box {
-  background: #f8fafc;
-  border: 1px solid #e7edf3;
+.mem-box,
+.mem-box[data-level="light"],
+.mem-box[data-level="medium"],
+.mem-box[data-level="heavy"] {
+  background: linear-gradient(180deg, #f8fafc, #f4f7fb);
+  border: 1px solid #e3e9f0;
   border-radius: var(--radius-md);
   padding: 14px;
-}
-.mem-box[data-level="light"] {
-  background: linear-gradient(180deg, #f7fffb, #f8fafc);
-  border-color: #cdeed9;
-}
-.mem-box[data-level="medium"] {
-  background: linear-gradient(180deg, #fff9f3, #f8fafc);
-  border-color: #ffd8b3;
-}
-.mem-box[data-level="heavy"] {
-  background: linear-gradient(180deg, #fff5f6, #f8fafc);
-  border-color: #ffc9cd;
 }
 .mem-top {
   display: flex;
@@ -829,9 +816,7 @@ body {
   line-height: 1.45;
   color: var(--gray600);
 }
-.mem-box[data-level="light"] .mem-status-title { color: #008f2a; }
-.mem-box[data-level="medium"] .mem-status-title { color: var(--orange); }
-.mem-box[data-level="heavy"] .mem-status-title { color: var(--red); }
+.mem-box .mem-status-title { color: var(--gray900); }
 .mem-score {
   flex: 0 0 auto;
   min-width: 64px;
@@ -853,9 +838,7 @@ body {
   font-weight: 900;
   line-height: 1.15;
 }
-.mem-box[data-level="light"] .mem-val { color: #008f2a; }
-.mem-box[data-level="medium"] .mem-val { color: var(--orange); }
-.mem-box[data-level="heavy"] .mem-val { color: var(--red); }
+.mem-box .mem-val { color: var(--blue-dark); }
 .mem-track {
   height: 8px;
   border-radius: 999px;
@@ -869,9 +852,7 @@ body {
   border-radius: 999px;
   transition: width 0.3s ease;
 }
-.mem-box[data-level="light"] .mem-fill { background: var(--green); }
-.mem-box[data-level="medium"] .mem-fill { background: var(--orange); }
-.mem-box[data-level="heavy"] .mem-fill { background: var(--red); }
+.mem-box .mem-fill { background: linear-gradient(90deg, var(--blue), #5aa0ff); }
 .tab-metrics {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -917,9 +898,9 @@ body {
   border-radius: var(--radius-sm);
   padding: 9px;
 }
-.sleep-item.lv3 { border-color: #ffd9b8; background: #fff8f1; }
-.sleep-item.lv4 { border-color: #ffc9cd; background: #fff5f6; }
-.sleep-item.lv5 { border-color: #ffb8be; background: #fff0f1; }
+.sleep-item.lv3,
+.sleep-item.lv4,
+.sleep-item.lv5 { border-color: #d8e1eb; background: #f8f9fa; }
 .sleep-fav {
   width: 30px;
   height: 30px;
@@ -987,9 +968,9 @@ body {
   font-weight: 900;
   vertical-align: 1px;
 }
-.tab-badge.live { background: var(--blue-soft); color: var(--blue); }
-.tab-badge.sleep { background: #e8f7ee; color: #00a831; }
-.tab-badge.heavy { background: #fff1f2; color: var(--red); }
+.tab-badge.live { background: #edf4ff; color: var(--blue-dark); }
+.tab-badge.sleep { background: #eef1f4; color: var(--gray700); }
+.tab-badge.heavy { background: #eef1f4; color: var(--gray900); }
 
 /* AI 코치 */
 .coach-card {
@@ -1025,12 +1006,16 @@ body {
   border: 1.5px solid var(--gray200);
   background: var(--white);
   color: var(--gray700);
-  padding: 12px;
+  padding: 10px;
   border-radius: var(--radius-sm);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
   transition: all 0.15s ease;
 }
 

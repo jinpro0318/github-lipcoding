@@ -110,30 +110,22 @@ body { margin: 0; width: 360px; background: var(--bg); color: var(--gray900);
 .butler-chip.is-active .butler-name { color: #fff; }
 
 /* 열린 탭 · 메모리 카드 */
-.mem-box { background: #f8fafc; border-radius: 14px; padding: 12px; margin-top: 4px;
-  border: 1px solid #e7edf3; }
-.mem-box[data-level="light"]  { background: linear-gradient(180deg, #f7fffb, #f8fafc); border-color: #cdeed9; }
-.mem-box[data-level="medium"] { background: linear-gradient(180deg, #fff9f3, #f8fafc); border-color: #ffd8b3; }
-.mem-box[data-level="heavy"]  { background: linear-gradient(180deg, #fff5f6, #f8fafc); border-color: #ffc9cd; }
+.mem-box, .mem-box[data-level="light"], .mem-box[data-level="medium"], .mem-box[data-level="heavy"] {
+  background: linear-gradient(180deg, #f8fafc, #f4f7fb); border-radius: 14px; padding: 12px; margin-top: 4px;
+  border: 1px solid #e3e9f0; }
 .mem-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .mem-status { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .mem-status-title { font-size: 14px; font-weight: 900; letter-spacing: -.1px; }
 .mem-status-msg { font-size: 11px; line-height: 1.45; color: var(--gray700); }
-.mem-box[data-level="light"]  .mem-status-title { color: #008f2a; }
-.mem-box[data-level="medium"] .mem-status-title { color: var(--orange); }
-.mem-box[data-level="heavy"]  .mem-status-title { color: var(--red); }
+.mem-box .mem-status-title { color: var(--gray900); }
 .mem-score { flex: 0 0 auto; min-width: 54px; border-radius: 12px; background: var(--white);
   padding: 7px 8px; text-align: right; box-shadow: inset 0 0 0 1px rgba(25,31,40,.04); }
 .mem-label { display: block; font-size: 10px; font-weight: 800; color: var(--gray500); }
 .mem-val { display: block; font-size: 15px; font-weight: 900; line-height: 1.15; }
-.mem-box[data-level="light"]  .mem-val { color: #008f2a; }
-.mem-box[data-level="medium"] .mem-val { color: var(--orange); }
-.mem-box[data-level="heavy"]  .mem-val { color: var(--red); }
+.mem-box .mem-val { color: var(--blue); }
 .mem-track { height: 7px; border-radius: 999px; background: #e5e8eb; overflow: hidden; margin-top: 10px; }
 .mem-fill { height: 100%; width: 0; border-radius: 999px; transition: width .3s; }
-.mem-box[data-level="light"]  .mem-fill { background: #00c73c; }
-.mem-box[data-level="medium"] .mem-fill { background: var(--orange); }
-.mem-box[data-level="heavy"]  .mem-fill { background: var(--red); }
+.mem-box .mem-fill { background: linear-gradient(90deg, var(--blue), #5aa0ff); }
 .tab-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
 .tab-metrics span { border-radius: 10px; background: rgba(255,255,255,.72); padding: 7px 4px;
   text-align: center; font-size: 10px; font-weight: 800; color: var(--gray500); }
@@ -144,21 +136,19 @@ body { margin: 0; width: 360px; background: var(--bg); color: var(--gray900);
 /* 탭 상태 배지 */
 .tab-badge { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px;
   font-size: 10px; font-weight: 800; vertical-align: middle; }
-.tab-badge.live { background: var(--blue-soft); color: var(--blue); }
-.tab-badge.sleep { background: #e8f7ee; color: #00a831; }
-.tab-badge.heavy { background: #fff1f2; color: var(--red); }
-.sleep-item.is-live { border-left-color: var(--blue); background: var(--blue-soft); }
+.tab-badge.live { background: #edf4ff; color: var(--blue); }
+.tab-badge.sleep { background: #eef1f4; color: var(--gray700); }
+.tab-badge.heavy { background: #eef1f4; color: var(--gray900); }
+.sleep-item.is-live { border-color: #cfe0f5; background: #f8f9fa; }
 .sleep-item.is-sleep { opacity: .82; }
-.sleep-item.is-heavy { border-left-color: var(--red); background: #fff5f5; }
+.sleep-item.is-heavy { border-color: #d8e1eb; background: #f8f9fa; }
 .toast { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%) translateY(10px);
   background: var(--gray900); color: #fff; padding: 9px 14px; border-radius: 999px; font-size: 12px;
   opacity: 0; transition: .25s; } .toast.show { opacity: 1; transform: translateX(-50%); }
 .sleep-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .sleep-item { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; align-items: center; gap: 8px;
   background: #f8f9fa; border-radius: 12px; padding: 8px; border: 1px solid #edf1f4; }
-.sleep-item.lv3 { border-color: #ffd9b8; background: #fff8f1; }
-.sleep-item.lv4 { border-color: #ffc9cd; background: #fff5f6; }
-.sleep-item.lv5 { border-color: #ffb8be; background: #fff0f1; }
+.sleep-item.lv3, .sleep-item.lv4, .sleep-item.lv5 { border-color: #d8e1eb; background: #f8f9fa; }
 .sleep-fav { width: 24px; height: 24px; border-radius: 8px; flex-shrink: 0; object-fit: cover;
   display: flex; align-items: center; justify-content: center; font-size: 14px; background: #fff; }
 .sleep-fav.ph { background: #eef1f4; }

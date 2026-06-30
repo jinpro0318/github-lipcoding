@@ -180,7 +180,7 @@ async function buildTabList() {
 }
 
 // 열린 탭 수·열어둔 시간으로 "컴퓨터 부담" 상태를 계산 (메모리 권한 없이도 항상 동작)
-function buildLoad(tabs, memory) {
+function buildLoad(tabs, memory, tone) {
   const live = tabs.filter((t) => !t.discarded).length;
   const longOpen = tabs.filter((t) => t.heavy).length;
   let ratio, level, source;
@@ -193,21 +193,41 @@ function buildLoad(tabs, memory) {
     level = live >= 13 || longOpen >= 5 ? "heavy" : live >= 6 || longOpen >= 2 ? "medium" : "light";
     source = "tabs";
   }
-  const titles = { light: "쾌적해요 🟢", medium: "조금 무거워요 🟠", heavy: "느려질 수 있어요 🔴" };
-  let message;
-  if (level === "light") {
-    message = `열린 탭 ${live}개. 지금은 가볍게 돌아가고 있어요.`;
-  } else if (level === "medium") {
-    message = `열린 탭 ${live}개가 메모리를 나눠 쓰는 중이에요. 안 쓰는 탭은 정리하면 더 쾌적해져요.`;
-  } else {
-    message = `탭 ${live}개가 열려 있어요. 오래 켜둔 탭이 컴퓨터를 느리게 만들 수 있으니 정리를 권해요.`;
-  }
-  if (longOpen > 0) message += ` (2시간 넘게 켜둔 탭 ${longOpen}개)`;
-  return { ratio, pct: Math.round(ratio * 100), level, source, title: titles[level], message, live, longOpen };
+  const copy = loadCopy(tone || "concierge", level, live, longOpen);
+  return { ratio, pct: Math.round(ratio * 100), level, source, title: copy.title, message: copy.message, live, longOpen };
+}
+
+function loadCopy(tone, level, live, longOpen) {
+  const longNote = longOpen > 0 ? ` 2시간 넘게 열린 탭 ${longOpen}개가 있습니다.` : "";
+  const copy = {
+    concierge: {
+      light: ["정돈되어 있습니다", `열린 탭 ${live}개입니다. 지금은 부담이 낮아 쾌적하게 모시고 있습니다.${longNote}`],
+      medium: ["조금 정리하면 좋습니다", `열린 탭 ${live}개가 자원을 나누어 쓰고 있습니다. 사용하지 않는 탭부터 정돈하시면 더 가벼워집니다.${longNote}`],
+      heavy: ["정리가 필요합니다", `탭 ${live}개가 열려 있어 부담이 커질 수 있습니다. 오래 켠 탭부터 차분히 정리해 드리겠습니다.${longNote}`]
+    },
+    secretary: {
+      light: ["아직 가벼워요", `열린 탭 ${live}개예요. 지금은 괜찮지만, 안 쓰는 탭은 나중에 같이 정리해봐요.${longNote}`],
+      medium: ["조금 무거워졌어요", `열린 탭 ${live}개가 메모리를 나눠 쓰고 있어요. 오래 안 본 탭부터 하나씩 닫으면 훨씬 편해져요.${longNote}`],
+      heavy: ["많이 버거워 보여요", `탭 ${live}개가 열려 있어요. 지금 안 쓰는 탭부터 같이 정리해서 컴퓨터를 가볍게 만들어봐요.${longNote}`]
+    },
+    coach: {
+      light: ["부담 낮음", `열린 탭 ${live}개. 현재 탭 부담은 낮습니다.${longNote}`],
+      medium: ["정리 권장", `열린 탭 ${live}개. 메모리 부담이 증가 중입니다. 사용하지 않는 탭을 정리하는 것이 좋습니다.${longNote}`],
+      heavy: ["정리 필요", `탭 ${live}개. 오래 열린 탭이 성능 저하 요인이 될 수 있습니다. 정리 우선순위를 확인하세요.${longNote}`]
+    },
+    manager: {
+      light: ["가볍습니다", `열린 탭 ${live}개! 아직 가볍게 달릴 수 있어요.${longNote}`],
+      medium: ["정리 타이밍", `열린 탭 ${live}개! 슬슬 무거워지고 있어요. 안 쓰는 탭부터 정리하고 다시 속도 올립시다.${longNote}`],
+      heavy: ["바로 정리합시다", `탭 ${live}개가 열려 있어요! 오래 켠 탭부터 닫고 컴퓨터 컨디션 회복 갑시다.${longNote}`]
+    }
+  };
+  const picked = (copy[tone] || copy.concierge)[level] || copy.concierge.light;
+  return { title: picked[0], message: picked[1] };
 }
 
 // 팝업용: 탭 목록 + 잠든 탭 수 + 시스템 메모리 + 부담 상태 + 현재 탭
 async function buildOverview() {
+  const settings = await loadSettings();
   const tabs = await buildTabList();
   const discarded = tabs.filter((t) => t.discarded).length;
   let memory = null;
@@ -217,7 +237,7 @@ async function buildOverview() {
       memory = { capacity: m.capacity, available: m.availableCapacity };
     }
   } catch {}
-  const load = buildLoad(tabs, memory);
+  const load = buildLoad(tabs, memory, settings.tone);
   const cur = tabs.find((t) => t.active) || null;
   const current = cur
     ? { title: cur.title, domain: cur.domain, openLabel: cur.openLabel, openMs: cur.openMs, heavy: cur.heavy }
