@@ -195,7 +195,25 @@ async function evaluate() {
   const s = await loadSession();
   await updateAsk(p, settings, s.active);
   if (!s.active) return;
-  const present = p.focused && p.kind !== "distract";
+
+  // '업무중'은 업무로 등록된 사이트(기본 업무 목록 + 사용자가 허용한 도메인)에서만 인정한다.
+  // 그 외 사이트는 업무중이 아니다.
+  const present = p.focused && p.kind === "work";
+
+  // 아직 업무/딴짓으로 분류되지 않은 중립 사이트는 '업무인가요?'만 물어보고
+  // 업무 시간은 멈춘다(가산 X). 이때는 단계별 경고/알림도 띄우지 않는다.
+  const decided =
+    settings.allowlist.includes(p.host) ||
+    settings.blocklist.includes(p.host) ||
+    (settings.askedHosts || []).includes(p.host);
+  const asking = p.focused && p.kind === "neutral" && p.host && !decided;
+  if (asking) {
+    await accumulate(false, p); // 업무중 아님 — 직전 구간만 마감하고 시간 멈춤
+    clearEscalation();
+    clearWarning();
+    return;
+  }
+
   if (present && !s.present) await onReturn(p);
   else if (!present && s.present) await onLeave(p);
   else await accumulate(present, p);
@@ -276,10 +294,9 @@ chrome.windows.onRemoved.addListener((id) => {
 // ---- 세션 제어 ----
 async function startSession(goalMin) {
   const p = await probe();
-  const present = p.focused && p.kind !== "distract";
   const s = fresh();
   s.active = true;
-  s.present = present;
+  s.present = true; // 시작은 업무중으로 두고, 직후 evaluate()가 실제 상태로 보정한다
   s.startedAt = Date.now();
   s.lastTick = Date.now();
   s.goalMin = goalMin || 25;
@@ -287,12 +304,13 @@ async function startSession(goalMin) {
   s.activeKind = p.kind;
   await set({ [SESSION_KEY]: s, [DOMAIN_KEY]: freshDomain() });
   await broadcastClassification(p);
-  if (!present) await onLeave(p);
+  // 이후 onMessage 핸들러가 evaluate()를 호출해
+  // 딴짓 사이트면 이탈 처리, 중립 사이트면 '업무인가요?' 질문으로 이어진다.
 }
 
 async function stopSession() {
   const p = await probe();
-  await accumulate(p.focused && p.kind !== "distract", p);
+  await accumulate(p.focused && p.kind === "work", p);
   clearEscalation();
   clearWarning();
   await set({ [SESSION_KEY]: fresh(), [ASK_KEY]: null });

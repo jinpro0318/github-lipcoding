@@ -34,7 +34,8 @@ export const DEFAULT_WORK = [
   "vercel.com",
   "azure.com",
   "developer.mozilla.org",
-  "localhost"
+  "localhost",
+  "tabtalk-jinpro0318-162012.azurewebsites.net"
 ];
 
 // 호스트에서 기준 도메인 추출 (www. 제거)

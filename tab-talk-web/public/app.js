@@ -1279,7 +1279,8 @@ function postToExt(payload) {
 function applyExtState(payload) {
   if (payload.classification) {
     extClassification = payload.classification;
-    extPresent = !!payload.classification.focused && payload.classification.kind !== "distract";
+    // '업무중'은 업무로 등록된 사이트에서만 인정한다. (중립/딴짓은 업무중 아님)
+    extPresent = !!payload.classification.focused && payload.classification.kind === "work";
     if (sessionActive) {
       if (extPresent && !present) onReturn();
       else if (!extPresent && present) onLeave();

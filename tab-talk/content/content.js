@@ -197,6 +197,18 @@
     }
   };
 
+  // 집사 톤별 마스코트 SVG (popup/mascots.js와 동일 디자인을 콘텐츠 스크립트에 인라인).
+  // 선택한 집사가 직접 메시지를 보내오는 느낌을 주기 위해 넛지 아이콘으로 사용한다.
+  const MASCOTS = {
+    concierge: `<svg class="mascot-svg" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="ttBodyConcierge" x1="60" y1="34" x2="60" y2="108" gradientUnits="userSpaceOnUse"><stop stop-color="#5aa0ff"/><stop offset="1" stop-color="#3182f6"/></linearGradient><linearGradient id="ttCapConcierge" x1="60" y1="22" x2="60" y2="42" gradientUnits="userSpaceOnUse"><stop stop-color="#ff6b76"/><stop offset="1" stop-color="#f04452"/></linearGradient></defs><ellipse cx="60" cy="111" rx="27" ry="5" fill="#191f28" opacity="0.07"/><rect x="25" y="42" width="70" height="65" rx="32" fill="url(#ttBodyConcierge)"/><rect x="35" y="38" width="50" height="9" rx="4.5" fill="#1b64da"/><rect x="39" y="25" width="42" height="16" rx="8" fill="url(#ttCapConcierge)"/><circle cx="60" cy="21" r="3.8" fill="#ffd23f"/><circle cx="49" cy="68" r="6.4" fill="#fff"/><circle cx="71" cy="68" r="6.4" fill="#fff"/><circle cx="50" cy="69" r="3.3" fill="#191f28"/><circle cx="72" cy="69" r="3.3" fill="#191f28"/><path d="M53 82 Q60 89 67 82" stroke="#191f28" stroke-width="3" stroke-linecap="round"/></svg>`,
+    secretary: `<svg class="mascot-svg" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="ttBodySec" x1="60" y1="34" x2="60" y2="108" gradientUnits="userSpaceOnUse"><stop stop-color="#4fd49a"/><stop offset="1" stop-color="#00c73c"/></linearGradient></defs><ellipse cx="60" cy="111" rx="27" ry="5" fill="#191f28" opacity="0.07"/><rect x="25" y="42" width="70" height="65" rx="32" fill="url(#ttBodySec)"/><path d="M30 52 Q40 38 60 38 Q80 38 90 52 Q78 46 60 46 Q42 46 30 52 Z" fill="#00a831"/><path d="M43 70 Q49 64 55 70" stroke="#191f28" stroke-width="3" stroke-linecap="round" fill="none"/><path d="M65 70 Q71 64 77 70" stroke="#191f28" stroke-width="3" stroke-linecap="round" fill="none"/><path d="M52 82 Q60 90 68 82" stroke="#191f28" stroke-width="3" stroke-linecap="round"/></svg>`,
+    coach: `<svg class="mascot-svg" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="ttBodyCoach" x1="60" y1="34" x2="60" y2="108" gradientUnits="userSpaceOnUse"><stop stop-color="#a78bfa"/><stop offset="1" stop-color="#7c5cff"/></linearGradient></defs><ellipse cx="60" cy="111" rx="27" ry="5" fill="#191f28" opacity="0.07"/><rect x="25" y="42" width="70" height="65" rx="32" fill="url(#ttBodyCoach)"/><circle cx="49" cy="68" r="6" fill="#fff"/><circle cx="71" cy="68" r="6" fill="#fff"/><circle cx="50" cy="69" r="3" fill="#191f28"/><circle cx="72" cy="69" r="3" fill="#191f28"/><circle cx="49" cy="68" r="9" fill="none" stroke="#2d1b69" stroke-width="2.4"/><circle cx="71" cy="68" r="9" fill="none" stroke="#2d1b69" stroke-width="2.4"/><path d="M54 84 Q60 87 66 84" stroke="#191f28" stroke-width="3" stroke-linecap="round"/></svg>`,
+    manager: `<svg class="mascot-svg" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="ttBodyMgr" x1="60" y1="34" x2="60" y2="108" gradientUnits="userSpaceOnUse"><stop stop-color="#ffb15a"/><stop offset="1" stop-color="#ff8a3d"/></linearGradient></defs><ellipse cx="60" cy="111" rx="27" ry="5" fill="#191f28" opacity="0.07"/><rect x="25" y="42" width="70" height="65" rx="32" fill="url(#ttBodyMgr)"/><rect x="33" y="44" width="54" height="8" rx="4" fill="#f04452"/><circle cx="49" cy="69" r="6.4" fill="#fff"/><circle cx="71" cy="69" r="6.4" fill="#fff"/><circle cx="50" cy="70" r="3.3" fill="#191f28"/><circle cx="72" cy="70" r="3.3" fill="#191f28"/><path d="M50 81 Q60 93 70 81 Z" fill="#191f28"/></svg>`
+  };
+  function butlerFace(tone) {
+    return MASCOTS[tone] || MASCOTS.concierge;
+  }
+
   // 직전에 뜬 줄은 제외하고 랜덤으로 한 줄 고르기 (연속 중복 방지)
   function pickLine(pool) {
     if (!pool || pool.length === 0) return "";
@@ -219,7 +231,7 @@
     if (bar) return;
     bar = document.createElement("div");
     bar.className = "tabtalk-nudge";
-    bar.innerHTML = `<span class="bell">🔔</span><span class="msg">${messageFor(tone)}</span><button class="close" title="닫기">✕</button>`;
+    bar.innerHTML = `<span class="face">${butlerFace(tone)}</span><span class="msg">${messageFor(tone)}</span><button class="close" title="닫기">✕</button>`;
     bar.querySelector(".close").onclick = remove;
     document.body.appendChild(bar);
     requestAnimationFrame(() => bar.classList.add("show"));
@@ -233,12 +245,12 @@
 
   // 중립 도메인 1회 물어보기 넛지 (업무/딴짓 버튼)
   let askBar = null;
-  function showAsk(host) {
+  function showAsk(host, tone) {
     if (askBar) return;
     askBar = document.createElement("div");
     askBar.className = "tabtalk-nudge tabtalk-ask";
     askBar.innerHTML =
-      `<span class="bell">🤔</span>` +
+      `<span class="face">${butlerFace(tone)}</span>` +
       `<span class="msg">주인님, '${host}'는 업무 동료인가요, 딴짓 친구인가요?</span>` +
       `<button class="ask-yes">업무예요</button>` +
       `<button class="ask-no">딴짓이에요</button>` +
@@ -256,7 +268,7 @@
     setTimeout(() => b.remove(), 350);
   }
   function answer(host, ans) {
-    try { chrome.runtime.sendMessage({ type: "classify-answer", host, answer: ans }); } catch {}
+    try { if (chrome.runtime && chrome.runtime.id) chrome.runtime.sendMessage({ type: "classify-answer", host, answer: ans }); } catch {}
     removeAsk();
   }
 
@@ -270,23 +282,46 @@
       removeAsk();
       return;
     }
+    // 아직 업무/딴짓으로 등록되지 않은 사이트면, 복귀 경고 대신
+    // '이 사이트는 업무인가요?' 질문을 먼저 띄운다. (업무로 답하면 업무로 등록됨)
+    if (ask && ask.host && location.hostname.replace(/^www\./, "") === ask.host) {
+      remove();
+      showAsk(ask.host, tone);
+      return;
+    }
+    removeAsk();
+    // 등록된 딴짓 사이트(또는 자리비움)에서만 복귀 넛지를 띄운다.
     if (session && session.active && !session.present) {
-      removeAsk();
       if (style === "popup") remove(); // 팝업 모드는 별도 경고 창이 처리 (중복 방지)
       else show(tone);
       return;
     }
     remove();
-    // 딴짓 상태가 아니고, 이 페이지가 물어볼 중립 도메인이면 1회 질문
-    if (ask && ask.host && location.hostname.replace(/^www\./, "") === ask.host) showAsk(ask.host);
-    else removeAsk();
   }
 
-  const read = () => chrome.storage.local.get(["session", "settings", "ask"], (o) => evaluate(o.session, o.settings, o.ask));
+  // 확장을 다시 불러오면(개발자 모드 새로고침 등) 이미 열려 있던 탭의 이 스크립트는
+  // 무효화된 컨텍스트로 chrome.* 를 호출해 "Extension context invalidated" 오류를 낸다.
+  // 모든 chrome 접근을 가드해 조용히 무시하도록 한다.
+  const alive = () => {
+    try { return !!(chrome.runtime && chrome.runtime.id); } catch { return false; }
+  };
+
+  const read = () => {
+    if (!alive()) return;
+    try {
+      chrome.storage.local.get(["session", "settings", "ask"], (o) => {
+        if (chrome.runtime.lastError) return;
+        evaluate(o.session, o.settings, o.ask);
+      });
+    } catch {}
+  };
   read();
-  chrome.storage.onChanged.addListener((c) => {
-    if (c.session || c.settings || c.ask) read();
-  });
+  try {
+    chrome.storage.onChanged.addListener((c) => {
+      if (!alive()) return;
+      if (c.session || c.settings || c.ask) read();
+    });
+  } catch {}
   // 탭을 보거나 숨길 때마다 다시 판단 (숨은 탭에서는 알림 제거)
   document.addEventListener("visibilitychange", read);
 })();
