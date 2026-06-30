@@ -72,11 +72,18 @@ async function loadSettings() {
 }
 
 // 현재 활성 탭/포커스/분류를 한 번에 조사
+// 일반 브라우저 창만 본다. 우리 경고 팝업(type:"popup")이나 사이드패널 같은
+// 확장 페이지가 포커스를 가져가도 "업무 탭"으로 오인하지 않도록 한다(깜빡임 방지).
+let lastNormalWinId = null;
 async function probe() {
   try {
-    const lastFocused = await chrome.windows.getLastFocused();
-    const focused = !!lastFocused.focused;
-    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    const wins = await chrome.windows.getAll({ populate: true });
+    const normals = wins.filter((w) => w.type === "normal");
+    let win = normals.find((w) => w.focused);
+    const focused = !!win; // 일반 창이 포커스일 때만 true (경고 팝업·타 앱 포커스는 false)
+    if (!win) win = normals.find((w) => w.id === lastNormalWinId) || normals[0];
+    if (win) lastNormalWinId = win.id;
+    const tab = win && win.tabs ? win.tabs.find((t) => t.active) : null;
     const url = tab && tab.url ? tab.url : "";
     const settings = await loadSettings();
     const kind = url ? classify(url, settings) : "neutral";
@@ -152,7 +159,7 @@ async function onLeave(p) {
   s2.awaySince = Date.now();
   await set({ [SESSION_KEY]: s2 });
   scheduleEscalation();
-  dispatchWarning(p);
+  dispatchWarning();
 }
 
 async function onReturn(p) {
@@ -228,33 +235,28 @@ function notify(title, message) {
   });
 }
 
-// ---- 딴짓 경고 디스패치 (옵션: nudge | popup | sidepanel) ----
+// ---- 딴짓 경고 디스패치 (옵션: nudge | popup) ----
 let warnWindowId = null;
 
-async function dispatchWarning(p) {
+async function dispatchWarning() {
   const settings = await loadSettings();
   const style = settings.warnStyle || "nudge";
   if (style === "popup") {
     try {
+      // 이미 떠 있으면 새로 만들지 않는다 (깜빡임/중복 방지)
       if (warnWindowId != null) {
         try { await chrome.windows.get(warnWindowId); return; } catch { warnWindowId = null; }
       }
       const w = await chrome.windows.create({
         url: "warn/warn.html",
         type: "popup",
-        width: 360,
-        height: 240,
+        width: 380,
+        height: 260,
+        top: 80,
+        left: 80,
         focused: true
       });
       warnWindowId = w.id;
-    } catch {}
-  } else if (style === "sidepanel") {
-    try {
-      const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-      if (tab) {
-        await chrome.sidePanel.setOptions({ tabId: tab.id, path: "warn/warn.html", enabled: true });
-        await chrome.sidePanel.open({ tabId: tab.id });
-      }
     } catch {}
   }
   // nudge는 content.js가 session.present 변화로 자동 처리

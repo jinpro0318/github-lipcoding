@@ -134,9 +134,18 @@ async function refresh() {
   tone = state?.settings?.tone || tone;
   document.querySelectorAll(".tone-chip").forEach((b) => b.classList.toggle("is-active", b.dataset.tone === tone));
   setMascot(tone);
+  paintButlers();
   render();
   renderDomains();
-  renderSleeping();
+  renderTabs();
+}
+
+// 담당 집사 칩에 마스코트 캐릭터를 그려넣는다
+function paintButlers() {
+  document.querySelectorAll(".butler-face").forEach((s) => {
+    if (s.querySelector(".mascot-svg")) return;
+    s.innerHTML = MASCOTS[s.dataset.m] || MASCOTS.concierge;
+  });
 }
 
 const CAT_ICON = { work: "💼", video: "🎬", shopping: "🛍️", sns: "📸", community: "🔄", game: "🎮", news_portal: "📰", webtoon: "📖", neutral: "🌐", etc: "🌐" };
@@ -171,31 +180,66 @@ function renderDomains() {
   });
 }
 
-// 잠든 탭(한동안 미접속) 목록 렌더 + 열기/닫기 액션
-async function renderSleeping() {
-  const list = (await send("idle:list")) || [];
-  el("sleepCount").textContent = `${list.length}개`;
-  el("sleepEmpty").hidden = list.length > 0;
+// 열린 탭 + 컴퓨터 부담 상태
+function fmtGB(bytes) {
+  return (bytes / 1073741824).toFixed(1);
+}
+async function renderTabs() {
+  const ov = (await send("idle:overview")) || { tabs: [], total: 0, discarded: 0, memory: null, load: null, current: null };
+  const tabs = ov.tabs || [];
+  el("tabCount").textContent = `${ov.total}개`;
+
+  // 부담 상태 배너 (색상으로 구분)
+  const load = ov.load || { level: "light", pct: 0, title: "쾌적해요 🟢", message: "", source: "tabs" };
+  el("memBox").dataset.level = load.level;
+  el("memStatusTitle").textContent = load.title;
+  el("memStatusMsg").textContent = load.message;
+  el("memFill").style.width = `${load.pct}%`;
+
+  // 게이지 라벨: 메모리 권한이 있으면 실제 메모리, 없으면 부담 지수
+  if (load.source === "memory" && ov.memory && ov.memory.capacity) {
+    el("memLabel").textContent = "시스템 메모리";
+    el("memVal").textContent = `${load.pct}% · ${fmtGB(ov.memory.capacity - ov.memory.available)}/${fmtGB(ov.memory.capacity)}GB`;
+  } else {
+    el("memLabel").textContent = "메모리 부담";
+    el("memVal").textContent = `${load.pct}%`;
+  }
+
+  // 현재 보고 있는 사이트 상태 (색상 강조)
+  if (ov.current) {
+    const c = ov.current;
+    el("memCaption").innerHTML = c.heavy
+      ? `지금 보는 <b>${c.domain}</b> 을(를) <b>${c.openLabel.replace("째 열림", "")}째</b> 열어두셨어요. 슬슬 정리하면 가벼워져요.`
+      : `지금 보는 <b>${c.domain}</b> 은(는) ${c.openLabel}. 아직 가벼워요.`;
+  } else {
+    el("memCaption").textContent = "오래 켜둔 탭은 컴퓨터를 느리게 만들 수 있어요.";
+  }
+
+  el("sleepEmpty").hidden = tabs.length > 0;
   const ul = el("sleepList");
   ul.innerHTML = "";
-  list.forEach((it) => {
+  tabs.forEach((it) => {
     const li = document.createElement("li");
-    li.className = `sleep-item lv${Math.min(it.level, 5)}`;
+    li.className = `sleep-item${it.active ? " is-live" : ""}${it.discarded ? " is-sleep" : ""}${it.heavy ? " is-heavy" : ""}`;
     const fav = it.favIconUrl
       ? `<img class="sleep-fav" src="${it.favIconUrl}" alt="" />`
       : `<span class="sleep-fav ph">🗂️</span>`;
+    const badge = it.active ? `<span class="tab-badge live">보는 중</span>`
+      : it.discarded ? `<span class="tab-badge sleep">잠듦</span>`
+      : it.heavy ? `<span class="tab-badge heavy">오래 켜둠</span>` : "";
     li.innerHTML = `
       ${fav}
       <div class="sleep-main">
-        <p class="sleep-msg">${it.message}</p>
-        <span class="sleep-meta">${it.domain} · ${it.idleLabel}</span>
+        <p class="sleep-msg">${it.title}${badge}</p>
+        <span class="sleep-meta">${it.domain} · ${it.openLabel}${it.active ? "" : ` · ${it.idleLabel}`}</span>
       </div>
       <div class="sleep-actions">
         <button class="sleep-open" title="이 탭 열기">열기</button>
-        <button class="sleep-close" title="이 탭 닫기">닫기</button>
+        ${it.active ? "" : `<button class="sleep-close" title="이 탭 닫기">닫기</button>`}
       </div>`;
-    li.querySelector(".sleep-open").onclick = async () => { await send("idle:focus", { tabId: it.tabId }); renderSleeping(); };
-    li.querySelector(".sleep-close").onclick = async () => { await send("idle:close", { tabId: it.tabId }); renderSleeping(); toast("탭을 정리했어요"); };
+    li.querySelector(".sleep-open").onclick = async () => { await send("idle:focus", { tabId: it.tabId }); renderTabs(); };
+    const cl = li.querySelector(".sleep-close");
+    if (cl) cl.onclick = async () => { await send("idle:close", { tabId: it.tabId }); renderTabs(); toast("탭을 정리했어요"); };
     ul.appendChild(li);
   });
 }

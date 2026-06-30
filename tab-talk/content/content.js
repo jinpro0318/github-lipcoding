@@ -262,7 +262,20 @@
 
   function evaluate(session, settings, ask) {
     const tone = (settings && settings.tone) || "concierge";
-    if (session && session.active && !session.present) { removeAsk(); show(tone); return; }
+    const style = (settings && settings.warnStyle) || "nudge";
+    // 백그라운드(숨은) 탭에서는 절대 띄우지 않는다 — 지금 보고 있는 탭에만 안내.
+    // (업무로 분류해 둔 사이트를 다른 탭에서 보는 동안 잘못 알림이 뜨던 문제 방지)
+    if (document.visibilityState !== "visible") {
+      remove();
+      removeAsk();
+      return;
+    }
+    if (session && session.active && !session.present) {
+      removeAsk();
+      if (style === "popup") remove(); // 팝업 모드는 별도 경고 창이 처리 (중복 방지)
+      else show(tone);
+      return;
+    }
     remove();
     // 딴짓 상태가 아니고, 이 페이지가 물어볼 중립 도메인이면 1회 질문
     if (ask && ask.host && location.hostname.replace(/^www\./, "") === ask.host) showAsk(ask.host);
@@ -274,4 +287,6 @@
   chrome.storage.onChanged.addListener((c) => {
     if (c.session || c.settings || c.ask) read();
   });
+  // 탭을 보거나 숨길 때마다 다시 판단 (숨은 탭에서는 알림 제거)
+  document.addEventListener("visibilitychange", read);
 })();

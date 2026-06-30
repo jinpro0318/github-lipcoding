@@ -75,20 +75,32 @@
 
       <section class="card sleeping-card">
         <div class="card-head">
-          <h2>잠든 탭</h2>
-          <span class="title-badge" id="sleepCount">0개</span>
+          <h2>열린 탭 · 메모리</h2>
+          <span class="title-badge" id="tabCount">0개</span>
         </div>
-        <p class="progress-caption" id="sleepEmpty">한동안 안 들른 탭이 여기에 모여요. 모두 잘 챙기고 계세요!</p>
+        <div class="mem-box" id="memBox" data-level="light">
+          <div class="mem-status" id="memStatus">
+            <span class="mem-status-title" id="memStatusTitle">쾌적해요 🟢</span>
+            <span class="mem-status-msg" id="memStatusMsg">탭 사용량을 확인하고 있어요.</span>
+          </div>
+          <div class="mem-head">
+            <span class="mem-label" id="memLabel">메모리 부담</span>
+            <span class="mem-val" id="memVal">—</span>
+          </div>
+          <div class="mem-track"><div class="mem-fill" id="memFill"></div></div>
+          <p class="mem-caption" id="memCaption">오래 켜둔 탭은 컴퓨터를 느리게 만들 수 있어요.</p>
+        </div>
         <ul class="sleep-list" id="sleepList"></ul>
+        <p class="progress-caption" id="sleepEmpty" hidden>열린 탭이 없어요.</p>
       </section>
 
       <section class="card">
-        <div class="card-head"><h2>응대 스타일</h2></div>
-        <div class="tone-row">
-          <button class="tone-chip is-active" data-tone="concierge">🔔 정중</button>
-          <button class="tone-chip" data-tone="secretary">☕ 다정</button>
-          <button class="tone-chip" data-tone="coach">🤓 차분</button>
-          <button class="tone-chip" data-tone="manager">🔥 열정</button>
+        <div class="card-head"><h2>담당 집사</h2></div>
+        <div class="butler-row">
+          <button class="tone-chip butler-chip is-active" data-tone="concierge"><span class="butler-face" data-m="concierge"></span><span class="butler-name">정중이</span></button>
+          <button class="tone-chip butler-chip" data-tone="secretary"><span class="butler-face" data-m="secretary"></span><span class="butler-name">다정이</span></button>
+          <button class="tone-chip butler-chip" data-tone="coach"><span class="butler-face" data-m="coach"></span><span class="butler-name">차분이</span></button>
+          <button class="tone-chip butler-chip" data-tone="manager"><span class="butler-face" data-m="manager"></span><span class="butler-name">열정이</span></button>
         </div>
       </section>
     </div>

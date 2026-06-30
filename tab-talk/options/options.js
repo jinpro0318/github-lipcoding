@@ -117,7 +117,7 @@ async function init() {
       const s = await load();
       s.warnStyle = r.value;
       await save(s);
-      const labels = { nudge: "코너 넛지", popup: "팝업창", sidepanel: "사이드패널" };
+      const labels = { nudge: "코너 넛지", popup: "팝업창" };
       toast(`딴짓 경고: ${labels[r.value]}로 바꿨어요`);
     });
   });

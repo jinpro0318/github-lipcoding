@@ -98,12 +98,25 @@ function messageFor(level, tone, name, settings) {
 function idleLabel(idleMs, settings) {
   if (settings.idleTestMode) {
     const min = Math.floor(idleMs / 60000);
-    return `${min}분 미접속`;
+    return min < 1 ? "방금 전" : `${min}분 미접속`;
   }
   const days = Math.floor(idleMs / 86400000);
   if (days >= 1) return `${days}일 미접속`;
   const hours = Math.floor(idleMs / 3600000);
-  return `${hours}시간 미접속`;
+  if (hours >= 1) return `${hours}시간 미접속`;
+  const min = Math.floor(idleMs / 60000);
+  return min < 1 ? "방금 전" : `${min}분 미접속`;
+}
+
+// 사람이 읽는 "열어둔 시간" 라벨
+function openLabel(openMs) {
+  if (openMs < 60000) return "방금 열림";
+  const min = Math.floor(openMs / 60000);
+  if (min < 60) return `${min}분째 열림`;
+  const hours = Math.floor(openMs / 3600000);
+  if (hours < 24) return `${hours}시간째 열림`;
+  const days = Math.floor(openMs / 86400000);
+  return `${days}일째 열림`;
 }
 
 // http(s) 탭만, 현재 보고 있는 탭은 제외
@@ -115,10 +128,96 @@ function trackable(tab) {
 async function touch(tabId) {
   const usage = await get(USAGE_KEY, {});
   const rec = usage[tabId] || {};
+  if (!rec.openedAt) rec.openedAt = Date.now();
   rec.lastAccess = Date.now();
   rec.notifiedLevel = 0;
   usage[tabId] = rec;
   await set({ [USAGE_KEY]: usage });
+}
+
+// 팝업용: 열린 모든 탭 목록(미접속 시간·열어둔 시간·잠듦 상태 포함) — 알림은 보내지 않음
+const HEAVY_OPEN_MS = 2 * 3600000; // 2시간 이상 켜둔 탭은 "메모리 부담" 후보
+
+async function buildTabList() {
+  const settings = await loadSettings();
+  const tabs = await chrome.tabs.query({});
+  const usage = await get(USAGE_KEY, {});
+  const now = Date.now();
+  const tone = settings.tone || "concierge";
+  const list = [];
+  for (const tab of tabs) {
+    if (!trackable(tab)) continue;
+    const rec = usage[tab.id];
+    const last = (rec && rec.lastAccess) || tab.lastAccessed || now;
+    const openedAt = (rec && rec.openedAt) || tab.lastAccessed || now;
+    const openMs = Math.max(0, now - openedAt);
+    const idleMs = tab.active ? 0 : now - last;
+    const level = tab.active ? 0 : levelFor(idleMs, settings);
+    list.push({
+      tabId: tab.id,
+      title: tabName(tab),
+      domain: hostOf(tab.url),
+      favIconUrl: tab.favIconUrl || "",
+      idleMs,
+      idleLabel: tab.active ? "보는 중" : idleLabel(idleMs, settings),
+      openMs,
+      openLabel: openLabel(openMs),
+      heavy: !tab.discarded && openMs >= HEAVY_OPEN_MS,
+      level,
+      discarded: !!tab.discarded,
+      active: !!tab.active,
+      message: level >= 1 ? messageFor(level, tone, tabName(tab), settings) : ""
+    });
+  }
+  // 보는 탭 먼저, 그 다음 오래 켜둔 순
+  list.sort((a, b) => (b.active - a.active) || (b.openMs - a.openMs));
+  return list;
+}
+
+// 열린 탭 수·열어둔 시간으로 "컴퓨터 부담" 상태를 계산 (메모리 권한 없이도 항상 동작)
+function buildLoad(tabs, memory) {
+  const live = tabs.filter((t) => !t.discarded).length;
+  const longOpen = tabs.filter((t) => t.heavy).length;
+  let ratio, level, source;
+  if (memory && memory.capacity) {
+    ratio = Math.min(1, 1 - memory.available / memory.capacity);
+    level = ratio >= 0.85 ? "heavy" : ratio >= 0.6 ? "medium" : "light";
+    source = "memory";
+  } else {
+    ratio = Math.min(1, (live + longOpen) / 16);
+    level = live >= 13 || longOpen >= 5 ? "heavy" : live >= 6 || longOpen >= 2 ? "medium" : "light";
+    source = "tabs";
+  }
+  const titles = { light: "쾌적해요 🟢", medium: "조금 무거워요 🟠", heavy: "느려질 수 있어요 🔴" };
+  let message;
+  if (level === "light") {
+    message = `열린 탭 ${live}개. 지금은 가볍게 돌아가고 있어요.`;
+  } else if (level === "medium") {
+    message = `열린 탭 ${live}개가 메모리를 나눠 쓰는 중이에요. 안 쓰는 탭은 정리하면 더 쾌적해져요.`;
+  } else {
+    message = `탭 ${live}개가 열려 있어요. 오래 켜둔 탭이 컴퓨터를 느리게 만들 수 있으니 정리를 권해요.`;
+  }
+  if (longOpen > 0) message += ` (2시간 넘게 켜둔 탭 ${longOpen}개)`;
+  return { ratio, pct: Math.round(ratio * 100), level, source, title: titles[level], message, live, longOpen };
+}
+
+// 팝업용: 탭 목록 + 잠든 탭 수 + 시스템 메모리 + 부담 상태 + 현재 탭
+async function buildOverview() {
+  const tabs = await buildTabList();
+  const discarded = tabs.filter((t) => t.discarded).length;
+  let memory = null;
+  try {
+    if (chrome.system && chrome.system.memory) {
+      const m = await chrome.system.memory.getInfo();
+      memory = { capacity: m.capacity, available: m.availableCapacity };
+    }
+  } catch {}
+  const load = buildLoad(tabs, memory);
+  const cur = tabs.find((t) => t.active) || null;
+  const current = cur
+    ? { title: cur.title, domain: cur.domain, openLabel: cur.openLabel, openMs: cur.openMs, heavy: cur.heavy }
+    : null;
+  return { tabs, total: tabs.length, discarded, memory, load, current };
 }
 
 // 모든 탭 검사 → 새 단계 도달 시 알림
@@ -136,6 +235,7 @@ async function scan() {
       continue;
     }
     const rec = usage[tab.id] || { lastAccess: tab.lastAccessed || now, notifiedLevel: 0 };
+    if (!rec.openedAt) rec.openedAt = tab.lastAccessed || now;
     const last = rec.lastAccess || tab.lastAccessed || now;
     const idleMs = now - last;
     const level = levelFor(idleMs, settings);
@@ -155,40 +255,10 @@ async function scan() {
 
 function touchInline(usage, tabId) {
   const rec = usage[tabId] || {};
+  if (!rec.openedAt) rec.openedAt = Date.now();
   rec.lastAccess = Date.now();
   rec.notifiedLevel = 0;
   usage[tabId] = rec;
-}
-
-// 팝업용: 방치 탭 목록(1단계 이상) — 알림은 보내지 않음
-async function buildIdleList() {
-  const settings = await loadSettings();
-  const tabs = await chrome.tabs.query({});
-  const usage = await get(USAGE_KEY, {});
-  const now = Date.now();
-  const tone = settings.tone || "concierge";
-  const list = [];
-  for (const tab of tabs) {
-    if (!trackable(tab)) continue;
-    if (tab.active) continue;
-    const rec = usage[tab.id];
-    const last = (rec && rec.lastAccess) || tab.lastAccessed || now;
-    const idleMs = now - last;
-    const level = levelFor(idleMs, settings);
-    if (level < 1) continue;
-    list.push({
-      tabId: tab.id,
-      title: tabName(tab),
-      domain: hostOf(tab.url),
-      favIconUrl: tab.favIconUrl || "",
-      idleMs,
-      idleLabel: idleLabel(idleMs, settings),
-      level,
-      message: messageFor(level, tone, tabName(tab), settings)
-    });
-  }
-  list.sort((a, b) => b.idleMs - a.idleMs);
-  return list;
 }
 
 async function focusTab(tabId) {
@@ -230,6 +300,15 @@ chrome.notifications.onClicked.addListener((id) => {
 
 // ---- 리스너/알람 등록 ----
 export function initTabUsage() {
+  chrome.tabs.onCreated.addListener(async (tab) => {
+    if (tab.id == null) return;
+    const usage = await get(USAGE_KEY, {});
+    const rec = usage[tab.id] || {};
+    if (!rec.openedAt) rec.openedAt = Date.now();
+    if (!rec.lastAccess) rec.lastAccess = Date.now();
+    usage[tab.id] = rec;
+    await set({ [USAGE_KEY]: usage });
+  });
   chrome.tabs.onActivated.addListener(({ tabId }) => touch(tabId));
   chrome.tabs.onUpdated.addListener((tabId, info) => {
     if (info.status === "complete" || info.url) touch(tabId);
@@ -252,9 +331,10 @@ export function initTabUsage() {
     if (!msg || !msg.type || !msg.type.startsWith("idle:")) return; // 다른 핸들러 담당
     (async () => {
       switch (msg.type) {
-        case "idle:list": send(await buildIdleList()); break;
-        case "idle:focus": await focusTab(msg.tabId); send(await buildIdleList()); break;
-        case "idle:close": await closeTab(msg.tabId); send(await buildIdleList()); break;
+        case "idle:list": send(await buildTabList()); break;
+        case "idle:overview": send(await buildOverview()); break;
+        case "idle:focus": await focusTab(msg.tabId); send(await buildOverview()); break;
+        case "idle:close": await closeTab(msg.tabId); send(await buildOverview()); break;
         default: send(null);
       }
     })();

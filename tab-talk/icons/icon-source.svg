@@ -1,0 +1,29 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="body" cx="0.4" cy="0.32" r="0.85">
+      <stop offset="0" stop-color="#6aa9ff"/>
+      <stop offset="1" stop-color="#2f7bf6"/>
+    </radialGradient>
+    <linearGradient id="beret" x1="64" y1="20" x2="64" y2="46" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ff5a64"/>
+      <stop offset="1" stop-color="#ef3b48"/>
+    </linearGradient>
+  </defs>
+  <!-- 머리/몸통 -->
+  <circle cx="64" cy="76" r="44" fill="url(#body)"/>
+  <!-- 베레모 챙(진한 파랑) -->
+  <ellipse cx="64" cy="40" rx="38" ry="11" fill="#1f6ae8"/>
+  <!-- 베레모(빨강) -->
+  <rect x="34" y="20" width="60" height="22" rx="11" fill="url(#beret)"/>
+  <!-- 꼭지(노랑) -->
+  <circle cx="64" cy="16" r="6" fill="#ffcf33"/>
+  <!-- 눈 -->
+  <circle cx="50" cy="70" r="9.5" fill="#fff"/>
+  <circle cx="78" cy="70" r="9.5" fill="#fff"/>
+  <circle cx="51.5" cy="71.5" r="4.8" fill="#13161c"/>
+  <circle cx="79.5" cy="71.5" r="4.8" fill="#13161c"/>
+  <circle cx="49" cy="69" r="1.6" fill="#fff"/>
+  <circle cx="77" cy="69" r="1.6" fill="#fff"/>
+  <!-- 미소 -->
+  <path d="M54 88 Q64 98 74 88" stroke="#13161c" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+</svg>

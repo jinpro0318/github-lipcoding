@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "딴짓 탭으로 새는 순간 정중한 집사가 집중을 되찾아 주는 크롬 확장.",
   "default_locale": "ko",
-  "permissions": ["tabs", "storage", "notifications", "alarms", "sidePanel"],
+  "permissions": ["tabs", "storage", "notifications", "alarms", "system.memory"],
   "host_permissions": [
     "http://localhost:3000/*",
     "https://tabtalk-jinpro0318-162012.azurewebsites.net/*"
@@ -30,9 +30,6 @@
   "options_ui": {
     "page": "options/options.html",
     "open_in_tab": true
-  },
-  "side_panel": {
-    "default_path": "warn/warn.html"
   },
   "content_scripts": [
     {
