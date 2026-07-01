@@ -320,6 +320,13 @@
   }
 
   // 중립 도메인 1회 물어보기 넛지 (업무/딴짓 버튼)
+  // 톤별 분류 질문 멘트 — 집사 캐릭터에 맞춰 톤을 다르게 한다.
+  const ASK_LINES = {
+    concierge: (host) => `주인님, '${host}'는 지금 업무에 필요한 곳인지요? 알려주시면 다음부터 제가 알아서 챙기겠습니다.`,
+    secretary: (host) => `주인님, '${host}'는 지금 일하는 데 필요한 곳이에요? 알려주면 다음부턴 안 여쭤볼게요.`,
+    coach: (host) => `'${host}' 분류가 필요합니다. 업무로 등록하면 이 사이트에선 넛지를 띄우지 않습니다.`,
+    manager: (host) => `주인님, '${host}' 정체 확인! 업무면 통과, 딴짓이면 바로 작업 탭으로 복귀합시다!`
+  };
   let askBar = null;
   function showAsk(host, tone) {
     if (askBar) return;
@@ -331,9 +338,10 @@
     yesButton.onclick = () => answer(host, "work");
     noButton.onclick = () => answer(host, "distract");
     closeButton.onclick = () => answer(host, "skip");
+    const askLine = (ASK_LINES[tone] || ASK_LINES.concierge)(host);
     nextAskBar.append(
       createFace(tone),
-      createText("msg", `주인님, '${host}'는 업무 동료인가요, 딴짓 친구인가요?`),
+      createText("msg", askLine),
       yesButton,
       noButton,
       closeButton
