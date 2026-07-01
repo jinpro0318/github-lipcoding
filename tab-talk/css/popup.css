@@ -71,6 +71,12 @@ body { margin: 0; width: 360px; background: var(--bg); color: var(--gray900);
   padding: 5px 12px; font-size: 12px; font-weight: 700; cursor: pointer; }
 .goal-chip.is-active { background: var(--blue); color: #fff; border-color: var(--blue); }
 .hero-message { font-size: 13px; color: var(--gray700); min-height: 32px; }
+.nudge-tag-row { display: none; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 8px; }
+.hero-card.is-distract .nudge-tag-row { display: flex; }
+.nudge-tag-btn { border: 1.5px solid var(--gray200); border-radius: 999px; background: #fff;
+  color: var(--gray700); font-size: 11px; font-weight: 700; padding: 6px 12px; cursor: pointer; white-space: nowrap; }
+.nudge-tag-btn:hover { background: var(--blue); border-color: var(--blue); color: #fff; }
+.nudge-tag-btn--wide { font-size: 10px; padding: 6px 10px; }
 .hero-actions { display: flex; gap: 8px; }
 .btn { flex: 1; border: 0; border-radius: 12px; padding: 11px; font-weight: 800; cursor: pointer; }
 .btn-primary { background: var(--blue); color: #fff; }

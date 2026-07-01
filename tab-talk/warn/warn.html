@@ -7,12 +7,17 @@
     <style>
       * { margin: 0; box-sizing: border-box; font-family: "Pretendard", -apple-system, system-ui, sans-serif; }
       body { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
-        gap: 14px; padding: 22px; text-align: center;
+        gap: 12px; padding: 22px; text-align: center;
         background: linear-gradient(160deg, #5aa0ff, #3182f6); color: #fff; }
       .bell { font-size: 40px; }
       .msg { font-size: 15px; font-weight: 700; line-height: 1.5; }
       .host { font-size: 12px; opacity: .85; }
-      button { margin-top: 6px; border: 0; border-radius: 999px; cursor: pointer;
+      .tag-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 4px; }
+      .tag-btn { border: 1.5px solid rgba(255,255,255,.7); border-radius: 999px; cursor: pointer;
+        font-size: 12px; font-weight: 800; padding: 8px 16px; background: transparent; color: #fff; }
+      .tag-btn:hover { background: rgba(255,255,255,.2); }
+      .tag-btn--wide { font-size: 11px; }
+      button.back { margin-top: 4px; border: 0; border-radius: 999px; cursor: pointer;
         font-size: 13px; font-weight: 800; padding: 10px 22px; background: #fff; color: #1b64da; }
     </style>
   </head>
@@ -20,7 +25,12 @@
     <div class="bell">🔔</div>
     <p class="msg" id="msg">주인님, 잠시 집중에서 벗어나셨어요.</p>
     <p class="host" id="host"></p>
-    <button id="ok">집중으로 돌아갈게요</button>
+    <div class="tag-row">
+      <button class="tag-btn" id="tagWork">업무 중</button>
+      <button class="tag-btn" id="tagDistract">딴짓 중</button>
+      <button class="tag-btn tag-btn--wide" id="tagBreak">잠시 한눈 팜 — 다시 집중 예정</button>
+    </div>
+    <button class="back" id="ok">집중으로 돌아갈게요</button>
     <script type="module" src="warn.js"></script>
   </body>
 </html>

@@ -451,6 +451,28 @@ el("stopBtn").addEventListener("click", handleStop);
 el("resetBtn").onclick = async () => { state = await send("reset"); render(); toast("오늘 기록을 초기화했어요"); };
 el("optionsBtn").onclick = () => chrome.runtime.openOptionsPage();
 el("coachBtn").onclick = coach;
+
+// ---- 넛지 팝업 하단 버튼 (업무 중 / 딴짓 중 / 잠시 한눈 팜) ----
+document.querySelectorAll(".nudge-tag-btn").forEach((btn) => {
+  btn.addEventListener("click", async () => {
+    const tag = btn.dataset.tag;
+    const t = TONE[tone] || TONE.concierge;
+    const msgs = {
+      work: "업무 이탈로 기록했어요",
+      distract: "딴짓으로 기록했어요 · 다시 집중해봐요!",
+      break: "잠깐 쉰 걸로 기록했어요 · 돌아오면 바로 이어가요"
+    };
+    toast(msgs[tag] || msgs.distract);
+    if (tag === "work") {
+      // 업무 이탈 — 복귀 처리(집중 시간에 포함)
+      await send("nudge-tag", { tag: "work" });
+    } else {
+      await send("nudge-tag", { tag });
+    }
+    state = await send("ping");
+    render();
+  });
+});
 document.querySelectorAll(".goal-chip").forEach((b) => b.onclick = () => {
   goalMin = Number(b.dataset.goal);
   document.querySelectorAll(".goal-chip").forEach((c) => c.classList.toggle("is-active", c === b));

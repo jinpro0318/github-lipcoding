@@ -56,6 +56,18 @@ async function render() {
 }
 
 document.getElementById("ok").addEventListener("click", () => window.close());
+document.getElementById("tagWork").addEventListener("click", async () => {
+  await chrome.storage.local.set({ nudgeTag: "work" });
+  window.close();
+});
+document.getElementById("tagDistract").addEventListener("click", async () => {
+  await chrome.storage.local.set({ nudgeTag: "distract" });
+  window.close();
+});
+document.getElementById("tagBreak").addEventListener("click", async () => {
+  await chrome.storage.local.set({ nudgeTag: "break" });
+  window.close();
+});
 render();
 chrome.storage.onChanged.addListener((c) => {
   if (c.classification || c.settings) render();

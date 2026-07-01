@@ -29,52 +29,76 @@ const HELPERS = [
 // ---- 톤별 멘트 ----
 const TONE = {
   concierge: {
-    idle: "주인님, 환영합니다. 준비되시면 집중 세션을 시작해 드릴게요.",
-    focus: "주인님, 지금 흐름이 아주 좋으십니다. 그대로 모시겠습니다.",
+    idle: "주인님, 오늘의 집중 세션을 정갈하게 준비해두었습니다. 목표만 정해주시면 시작하겠습니다.",
+    focus: "훌륭합니다, 주인님. 현재 집중의 품격이 안정적으로 유지되고 있습니다.",
     helpers: {
-      concierge: "주인님, 잠시 다른 곳에 머무르고 계시네요. 원하실 때 모셔다 드릴게요.",
-      noljima: "주인님, 1분이 지났어요. 슬슬 자리로 다시 모실까요?",
-      teacher: "주인님, 3분째 머무셨어요. 집중 자리로 정중히 안내해 드릴게요.",
-      alarm: "주인님, 5분이 지났습니다. 오늘 목표가 주인님을 기다리고 있어요.",
-      pleader: "주인님, 충분히 쉬셨다면 이제 멋진 집중을 보여주실 시간이에요."
+      concierge: "주인님, 작업 탭을 잠시 벗어나셨습니다. 원래 자리의 화면은 제가 지켜두고 있겠습니다.",
+      noljima: "1분째 다른 탭에 머무르고 계십니다. 하시던 일이 아직 주인님을 기다리고 있습니다.",
+      teacher: "3분이 지났습니다. 지금 돌아오시면 집중의 예열이 아직 남아 있습니다.",
+      alarm: "5분이 지났습니다, 주인님. 이제 다른 탭은 잠시 접어두고 작업 탭으로 돌아가실 때입니다.",
+      pleader: "10분이 지났습니다. 이쯤 되면 잠깐이 아니라 탭 이사에 가깝습니다. 원래 작업 탭으로 돌아가시지요."
     },
-    welcome: "주인님, 돌아와 주셔서 감사합니다. 바로 집중 자리로 모실게요."
+    welcome: "돌아오셨군요, 주인님. 흐트러진 집중을 다시 정돈해두었습니다."
   },
   secretary: {
-    idle: "오셨어요? 준비되면 바로 시작할게요. 천천히 하셔도 돼요.",
-    focus: "오, 지금 집중력 정말 좋아요. 이대로 쭉 가요!",
+    idle: "왔어요? 오늘도 너무 무리 말고, 딱 한 세션만 같이 시작해봐요.",
+    focus: "좋아요, 지금 잘하고 있어요. 방금 그 집중 흐름, 꽤 좋아요.",
     helpers: {
-      concierge: "잠깐 한눈파셨네요. 괜찮아요, 같이 돌아가요.",
-      noljima: "1분 지났어요. 이제 슬슬 돌아올까요?",
-      teacher: "벌써 3분이에요. 우리 다시 집중해봐요, 응?",
-      alarm: "5분 지났어요! 할 일이 기다리고 있어요.",
-      pleader: "이제 진짜 돌아올 시간이에요. 제가 응원할게요."
+      concierge: "앗, 잠깐 다른 탭에 갔네요. 괜찮아요, 금방 돌아오면 흐름 안 끊겨요.",
+      noljima: "1분 지났어요. 지금 작업 탭으로 돌아가면 아까 하던 생각을 다시 잡을 수 있어요.",
+      teacher: "3분이 지났어요. 딴 탭이 재밌는 척하지만, 우리 목표도 꽤 중요하잖아요.",
+      alarm: "5분이 지났어요. 이제 슬슬 원래 하던 탭으로 돌아가면 좋겠어요. 제가 옆에서 같이 볼게요.",
+      pleader: "10분이 지났어요. 충분히 쉬었다고 치고, 이제 다시 작업 탭으로 돌아가봐요."
     },
-    welcome: "돌아왔네요! 잘했어요. 다시 시작해봐요."
+    welcome: "잘 돌아왔어요. 역시 돌아올 줄 알았어요. 이제 천천히 이어가면 돼요."
   },
   coach: {
-    idle: "세션을 시작하면 집중 시간을 측정합니다.",
-    focus: "집중 유지 중. 좋은 페이스입니다.",
+    idle: "집중 세션 대기 중입니다. 목표를 선택하면 타이머와 이탈 기록을 시작합니다.",
+    focus: "집중 유지 중입니다. 현재 페이스는 정상 범위입니다.",
     helpers: {
-      concierge: "집중에서 벗어났습니다. 복귀를 권장합니다.",
-      noljima: "1분 경과. 지금 복귀하면 흐름을 살릴 수 있습니다.",
-      teacher: "3분 경과. 작업 맥락이 끊기기 시작합니다.",
-      alarm: "5분 경과. 목표 진행이 지연되고 있습니다.",
-      pleader: "10분 경과. 세션을 재정비할 시점입니다."
+      concierge: "작업 탭 이탈이 감지되었습니다. 짧은 이동은 기록하지 않습니다.",
+      noljima: "이탈 1분 경과. 지금 작업 탭으로 복귀하면 맥락 손실을 줄일 수 있습니다.",
+      teacher: "이탈 3분 경과. 집중 흐름이 약해지고 있습니다. 작업 탭 복귀를 권장합니다.",
+      alarm: "이탈 5분 경과. 현재 세션에서 딴 탭 체류 시간이 증가하고 있습니다.",
+      pleader: "이탈 10분 경과. 현재 상태는 '잠깐 확인' 범위를 초과했습니다. 작업 탭으로 돌아오세요."
     },
-    welcome: "복귀 확인. 세션을 이어갑니다."
+    welcome: "복귀 확인. 이탈 시간은 기록했습니다. 변명은 기록하지 않았습니다."
   },
   manager: {
-    idle: "자, 시작해볼까요? 오늘도 멋지게 가봅시다!",
-    focus: "이야 집중력 미쳤다! 그대로 가즈아!",
+    idle: "좋아요! 오늘의 집중 세션 준비 완료입니다. 목표 정하고 바로 시작해봅시다!",
+    focus: "좋습니다! 지금 집중 폼 살아있어요. 이대로만 가면 오늘 꽤 됩니다!",
     helpers: {
-      concierge: "어이쿠 잠깐 새셨네요! 다시 가봅시다!",
-      noljima: "1분 컷! 자 돌아와요, 할 수 있어요!",
-      teacher: "3분이나! 괜찮아요, 지금부터 다시 달리면 돼요!",
-      alarm: "5분 경보! 목표가 손짓하고 있어요, 가즈아!",
-      pleader: "10분이면 충분히 쉬었어요! 이제 폭발할 시간!"
+      concierge: "앗, 탭이 옆길로 샜습니다! 괜찮아요, 지금 돌아오면 그냥 해프닝입니다!",
+      noljima: "1분 지났습니다. 아직 집중력 살아있어요. 작업 탭으로 바로 복귀합시다!",
+      teacher: "3분 지났어요. 딴 탭한테 흐름 뺏기면 안 됩니다. 원래 탭으로 다시 갑시다!",
+      alarm: "5분 지났습니다. 지금이 고비입니다. 작업 탭으로 돌아오면 오늘의 내가 이깁니다!",
+      pleader: "10분 지났습니다. 딴 탭 근무는 여기까지! 이제 본업 탭으로 출근합시다!"
     },
-    welcome: "돌아왔다! 역시 해낼 줄 알았어요. 가봅시다!"
+    welcome: "복귀 성공! 좋아요, 다시 집중 엔진 켜고 목표까지 이어갑시다!"
+  }
+};
+
+// ---- 집사별 카메라 시선 감지 메시지 ----
+const GAZE_MSG = {
+  concierge: {
+    gazeAway: "주인님, 시선이 잠시 화면 밖으로 향했습니다. 하시던 화면으로 다시 돌아오시면 좋겠습니다.",
+    noFace: "주인님께서 잠시 자리를 비우신 듯합니다. 세션은 제가 지키고 있겠습니다.",
+    gazeReturn: "좋습니다, 주인님. 시선이 다시 화면으로 돌아왔습니다. 집중을 이어가겠습니다."
+  },
+  secretary: {
+    gazeAway: "눈이 잠깐 다른 데 갔네요. 괜찮아요, 다시 화면만 봐도 흐름 돌아와요.",
+    noFace: "잠깐 자리 비웠나 봐요. 돌아오면 이어서 하면 돼요.",
+    gazeReturn: "좋아요, 다시 돌아왔네요. 지금부터 천천히 이어가면 돼요."
+  },
+  coach: {
+    gazeAway: "시선 이탈 감지. 화면 응시 상태가 아니므로 집중 점수가 하락할 수 있습니다.",
+    noFace: "얼굴 미감지. 자리 비움 상태로 판단합니다.",
+    gazeReturn: "시선 복귀 확인. 집중 상태로 전환합니다."
+  },
+  manager: {
+    gazeAway: "앗, 시선이 샜습니다! 다시 하던 화면부터 딱 잡아봅시다!",
+    noFace: "자리 비움 감지! 돌아오면 바로 이어서 달려봅시다!",
+    gazeReturn: "좋습니다! 시선 복귀 완료. 다시 몰입 모드 갑니다!"
   }
 };
 
@@ -785,7 +809,7 @@ function onReturn() {
   sessionDistractCount += 1;
   sendEvent({ type: "leave" });
   sendEvent({ type: "return", awayMs });
-  setHero(welcomeMessageFor(awayMs));
+  setHero(t().welcome);
   const mins = Math.floor(awayMs / 60000);
   const dur = mins >= 1 ? `${mins}분` : `${Math.round(awayMs / 1000)}초`;
   toast(`자리 비움 ${dur} · 이탈로 자동 기록했어요`);
@@ -1059,7 +1083,8 @@ function handleAttention(faceFound, looking) {
       gazeAwaySince = null;
       camNudged = false;
       el("heroCard").classList.remove("gaze-away");
-      setHero(t().focus);
+      const gm = GAZE_MSG[tone] || GAZE_MSG.concierge;
+      setHero(gm.gazeReturn);
     }
     setCamState("ok", "눈맞춤 좋아요 👀");
     camPipKind = "ok";
@@ -1070,7 +1095,8 @@ function handleAttention(faceFound, looking) {
   // 시선 이탈 또는 얼굴 사라짐
   if (!gazeAwaySince) gazeAwaySince = Date.now();
   const awayFor = Date.now() - gazeAwaySince;
-  const warnText = faceFound ? "화면을 보고 계신가요?" : "주인님이 안 보여요";
+  const gm = GAZE_MSG[tone] || GAZE_MSG.concierge;
+  const warnText = faceFound ? "시선 이탈 중" : "얼굴 미감지";
   setCamState("warn", warnText);
   camPipKind = "warn";
   camPipText = warnText;
@@ -1079,9 +1105,7 @@ function handleAttention(faceFound, looking) {
     camNudged = true;
     sessionGazeAwayCount += 1; // 시선 이탈 횟수 기록
     el("heroCard").classList.add("gaze-away");
-    const msg = faceFound
-      ? "주인님, 화면에서 눈이 떠나셨어요. 다시 집중을 모실까요?"
-      : "주인님, 자리에 안 계신가요? 돌아오시면 이어서 모실게요.";
+    const msg = faceFound ? gm.gazeAway : gm.noFace;
     setHero(msg);
     toast("👀 시선이 화면을 벗어났어요");
     notify("탭talk 집사", msg);
@@ -1622,6 +1646,38 @@ el("resetBtn").addEventListener("click", async () => {
 
 el("pipBtn").addEventListener("click", togglePip);
 el("camBtn").addEventListener("click", toggleCamera);
+
+// ---- 넛지 팝업 하단 버튼 (업무 중 / 딴짓 중 / 잠시 한눈 팜) ----
+document.querySelectorAll(".nudge-tag-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const tag = btn.dataset.tag;
+    const msgs = {
+      work: { toast: "업무 이탈로 기록했어요", hero: t().focus },
+      distract: { toast: "딴짓으로 기록했어요 · 다시 집중해봐요!", hero: t().helpers[activeHelperId] || t().helpers.concierge },
+      break: { toast: "잠깐 쉰 걸로 기록했어요 · 돌아오면 바로 이어가요", hero: t().welcome }
+    };
+    const m = msgs[tag] || msgs.distract;
+    toast(m.toast);
+    setHero(m.hero);
+    // 이탈 집계는 tag에 따라 다르게 처리
+    if (tag === "work" && awaySince) {
+      // 업무 중이면 이탈 시간을 집계에서 제외하고 복귀 처리
+      awaySince = null;
+      present = true;
+      lastTick = Date.now();
+      clearEscalations();
+      el("heroCard").classList.add("is-focus");
+      el("heroCard").classList.remove("is-distract");
+      el("statusChip").textContent = "몰입 중";
+      el("statusTimer").textContent = fmtClock(focusMs);
+      highlightHelper("concierge");
+      updatePip();
+    } else if (tag === "break" || tag === "distract") {
+      // 나머지는 onReturn에 맡겨 정상 이탈 기록 후 복귀
+      onReturn();
+    }
+  });
+});
 
 document.querySelectorAll(".tone-chip").forEach((btn) => {
   btn.addEventListener("click", () => {

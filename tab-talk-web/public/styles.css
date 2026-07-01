@@ -208,6 +208,39 @@ body {
   background: linear-gradient(180deg, #fff6f0, #ffffff);
 }
 
+/* ---- 넛지 팝업 하단 버튼 ---- */
+.nudge-tag-row {
+  display: none;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 8px;
+}
+.hero-card.is-distract .nudge-tag-row {
+  display: flex;
+}
+.nudge-tag-btn {
+  border: 1.5px solid var(--gray200, #e5e8eb);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--gray700, #4e5968);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.nudge-tag-btn:hover {
+  background: var(--blue, #3182f6);
+  border-color: var(--blue, #3182f6);
+  color: #fff;
+}
+.nudge-tag-btn--wide {
+  font-size: 11px;
+  padding: 7px 12px;
+}
+
 /* 마스코트 탭이 (진행 링 중앙) */
 .mascot {
   position: relative;
